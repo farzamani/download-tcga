@@ -1,0 +1,34 @@
+project_id	disease_type	primary_site
+TCGA-ACC	Adrenocortical Carcinoma	Adrenal Gland
+TCGA-BLCA	Bladder Urothelial Carcinoma	Bladder
+TCGA-BRCA	Breast Invasive Carcinoma	Breast
+TCGA-CESC	Cervical Squamous Cell Carcinoma and Endocervical Adenocarcinoma	Cervix Uteri
+TCGA-CHOL	Cholangiocarcinoma	Bile Duct
+TCGA-COAD	Colon Adenocarcinoma	Colon
+TCGA-DLBC	Lymphoid Neoplasm Diffuse Large B-cell Lymphoma	Lymph Nodes
+TCGA-ESCA	Esophageal Carcinoma	Esophagus
+TCGA-GBM	Glioblastoma Multiforme	Brain
+TCGA-HNSC	Head and Neck Squamous Cell Carcinoma	Head and Neck
+TCGA-KICH	Kidney Chromophobe	Kidney
+TCGA-KIRC	Kidney Renal Clear Cell Carcinoma	Kidney
+TCGA-KIRP	Kidney Renal Papillary Cell Carcinoma	Kidney
+TCGA-LAML	Acute Myeloid Leukemia	Blood
+TCGA-LGG	Brain Lower Grade Glioma	Brain
+TCGA-LIHC	Liver Hepatocellular Carcinoma	Liver
+TCGA-LUAD	Lung Adenocarcinoma	Bronchus and Lung
+TCGA-LUSC	Lung Squamous Cell Carcinoma	Bronchus and Lung
+TCGA-MESO	Mesothelioma	Pleura
+TCGA-OV	Ovarian Serous Cystadenocarcinoma	Ovary
+TCGA-PAAD	Pancreatic Adenocarcinoma	Pancreas
+TCGA-PCPG	Pheochromocytoma and Paraganglioma	Adrenal Gland
+TCGA-PRAD	Prostate Adenocarcinoma	Prostate Gland
+TCGA-READ	Rectum Adenocarcinoma	Rectum
+TCGA-SARC	Sarcoma	Soft Tissue
+TCGA-SKCM	Skin Cutaneous Melanoma	Skin
+TCGA-STAD	Stomach Adenocarcinoma	Stomach
+TCGA-TGCT	Testicular Germ Cell Tumors	Testis
+TCGA-THCA	Thyroid Carcinoma	Thyroid Gland
+TCGA-THYM	Thymoma	Thymus
+TCGA-UCEC	Uterine Corpus Endometrial Carcinoma	Uterus
+TCGA-UCS	Uterine Carcinosarcoma	Uterus
+TCGA-UVM	Uveal Melanoma	Eye

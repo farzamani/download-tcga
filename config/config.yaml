@@ -1,0 +1,26 @@
+dirs:
+  raw: results/raw
+  processed: results/processed
+  summary: results/summary
+  merged: results/merged
+
+# TCGA sample type filter.
+# "all" downloads every available sample type for each project.
+# To restrict to a specific type use a code: "TP" (Primary Tumor),
+# "NT" (Solid Tissue Normal), "TB" (Blood Derived Normal), etc.
+sample_type: "all"
+
+modalities:
+  run_rna: true
+  run_mirna: true
+  run_methylation: true
+  run_cnv: true
+  run_annotation: true
+
+# Path to the project list (relative to the working directory)
+projects_file: config/projects.tsv
+
+# Methylation: maximum number of CpG sites to retain per project.
+# Sites are ranked by variance (highest first) to keep the most informative probes.
+# Set to null to keep all sites (very large output).
+max_cpgs: 50000

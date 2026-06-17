@@ -1,0 +1,13 @@
+name: r-tcgabiolinks
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - r-base=4.3
+  - bioconductor-tcgabiolinks>=2.30
+  - bioconductor-summarizedexperiment>=1.32
+  - bioconductor-genomicranges>=1.54
+  - r-data.table>=1.14
+  - r-matrixstats>=1.2
+  - r-optparse>=1.7
