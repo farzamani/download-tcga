@@ -11,7 +11,7 @@ rule merge_rna:
     log:
         "logs/merge/rna.log"
     conda:
-        "envs/r-tcgabiolinks.yaml"
+        os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
     threads: 2
     resources:
         mem_mb  = 32000,
@@ -32,7 +32,7 @@ rule merge_mirna:
     log:
         "logs/merge/mirna.log"
     conda:
-        "envs/r-tcgabiolinks.yaml"
+        os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
     threads: 2
     resources:
         mem_mb  = 16000,
@@ -53,7 +53,7 @@ rule merge_methylation:
     log:
         "logs/merge/methylation.log"
     conda:
-        "envs/r-tcgabiolinks.yaml"
+        os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
     threads: 2
     resources:
         mem_mb  = 64000,   # 33 projects × up to 50k CpGs is large
@@ -74,7 +74,7 @@ rule merge_cnv:
     log:
         "logs/merge/cnv.log"
     conda:
-        "envs/r-tcgabiolinks.yaml"
+        os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
     threads: 2
     resources:
         mem_mb  = 16000,
@@ -95,7 +95,7 @@ rule merge_annotation:
     log:
         "logs/merge/annotation.log"
     conda:
-        "envs/r-tcgabiolinks.yaml"
+        os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
     threads: 1
     resources:
         mem_mb  = 8000,

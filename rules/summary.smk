@@ -21,7 +21,7 @@ rule summarize_project:
     log:
         "logs/summarize/{project}.log"
     conda:
-        "envs/r-tcgabiolinks.yaml"
+        os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
     threads: 1
     resources:
         mem_mb  = 4000,

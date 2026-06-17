@@ -10,7 +10,7 @@ rule download_rna:
     log:
         "logs/download_rna/{project}.log"
     conda:
-        "envs/r-tcgabiolinks.yaml"
+        os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
     threads: 2
     resources:
         mem_mb  = 16000,
@@ -34,7 +34,7 @@ rule download_mirna:
     log:
         "logs/download_mirna/{project}.log"
     conda:
-        "envs/r-tcgabiolinks.yaml"
+        os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
     threads: 2
     resources:
         mem_mb  = 8000,
@@ -58,7 +58,7 @@ rule download_methylation:
     log:
         "logs/download_methylation/{project}.log"
     conda:
-        "envs/r-tcgabiolinks.yaml"
+        os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
     threads: 2
     resources:
         mem_mb  = 32000,
@@ -84,7 +84,7 @@ rule download_cnv:
     log:
         "logs/download_cnv/{project}.log"
     conda:
-        "envs/r-tcgabiolinks.yaml"
+        os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
     threads: 2
     resources:
         mem_mb  = 8000,

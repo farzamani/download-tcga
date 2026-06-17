@@ -4,7 +4,7 @@ rule build_annotation:
     log:
         "logs/build_annotation/{project}.log"
     conda:
-        "envs/r-tcgabiolinks.yaml"
+        os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
     threads: 1
     resources:
         mem_mb  = 8000,

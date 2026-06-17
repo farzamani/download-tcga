@@ -1,4 +1,5 @@
 import csv
+import os
 
 configfile: "config/config.yaml"
 
