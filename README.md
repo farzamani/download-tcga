@@ -2,6 +2,8 @@
 
 Snakemake workflow to download and harmonise TCGA multi-omics data (mRNA, miRNA, methylation, CNV, annotation) using [TCGAbiolinks](https://bioconductor.org/packages/TCGAbiolinks/). All data are open-access GDC files.
 
+This repo was built using Claude Code.
+
 ## Requirements
 
 - Snakemake ≥ 7.0
