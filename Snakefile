@@ -69,3 +69,16 @@ def all_targets():
 rule all:
     input:
         all_targets()
+
+
+# ---------------------------------------------------------------------------
+# Remove the GDC download cache on successful completion.
+# The cache holds raw .tar.gz chunks and is no longer needed once all TSVs
+# have been written.  On failure the cache is preserved so runs can resume.
+# ---------------------------------------------------------------------------
+onsuccess:
+    import shutil
+    cache_dir = config["dirs"]["gdc_cache"]
+    if os.path.exists(cache_dir):
+        shutil.rmtree(cache_dir)
+        print(f"Cleaned up GDC cache: {cache_dir}")

@@ -38,8 +38,8 @@ modalities <- list(
   annotation  = file.path(processed_dir, "annotation.tsv")
 )
 
-id_col <- c(rna = "sample_id", mirna = "sample_id", methylation = "sample_id",
-            cnv = "barcode", annotation = "patient_id")
+id_col <- c(rna = "barcode", mirna = "barcode", methylation = "barcode",
+            cnv = "barcode", annotation = "barcode")
 
 sample_sets <- setNames(lapply(names(modalities), function(mod) {
   read_col(modalities[[mod]], id_col[[mod]])
@@ -55,21 +55,23 @@ counts <- data.table(
 )
 
 # ---------------------------------------------------------------------------
-# Pairwise patient-level overlap (only for modalities with data)
+# N-way patient-level overlap (2-way through 5-way, for modalities with data)
 # ---------------------------------------------------------------------------
 active <- names(which(vapply(sample_sets, length, integer(1)) > 0))
 
 if (length(active) >= 2) {
-  pairs <- combn(active, 2, simplify = FALSE)
-  overlap_rows <- lapply(pairs, function(p) {
-    data.table(
-      project   = project,
-      modality  = paste(p[1], p[2], sep = "_x_"),
-      n_samples = length(intersect(to_patient(sample_sets[[p[1]]]),
-                                   to_patient(sample_sets[[p[2]]]))
-      )
-    )
-  })
+  overlap_rows <- list()
+  for (k in 2:min(length(active), 5)) {
+    combos <- combn(active, k, simplify = FALSE)
+    for (combo in combos) {
+      patient_sets <- lapply(combo, function(m) to_patient(sample_sets[[m]]))
+      overlap_rows <- c(overlap_rows, list(data.table(
+        project   = project,
+        modality  = paste(combo, collapse = "_x_"),
+        n_samples = length(Reduce(intersect, patient_sets))
+      )))
+    }
+  }
   out <- rbind(counts, rbindlist(overlap_rows), fill = TRUE)
 } else {
   out <- counts

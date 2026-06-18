@@ -13,16 +13,14 @@ if (length(args) < 4) stop("Usage: download_cnv.R <project> <sample_type> <outfi
 
 project     <- args[1]
 sample_type <- args[2]
-outfile     <- args[3]
-gdc_cache   <- args[4]
+outfile     <- normalizePath(args[3], mustWork = FALSE)
+gdc_cache   <- normalizePath(args[4], mustWork = FALSE)
 
-barcode_to_patient <- function(bc) substr(bc, 1, 12)
-barcode_to_sample  <- function(bc) substr(bc, 1, 16)
+dir.create(gdc_cache, recursive = TRUE, showWarnings = FALSE)
+setwd(gdc_cache)
 
 write_empty <- function(path) {
-  fwrite(data.frame(barcode = character(), patient_id = character(),
-                    sample_id = character(), project = character(),
-                    sample_type = character(), chromosome = character(),
+  fwrite(data.frame(barcode = character(), chromosome = character(),
                     start = integer(), end = integer(),
                     num_probes = integer(), segment_mean = numeric()),
          path, sep = "\t", quote = FALSE)
@@ -51,10 +49,6 @@ tryCatch({
 
   out <- data.table(
     barcode      = barcodes,
-    patient_id   = barcode_to_patient(barcodes),
-    sample_id    = barcode_to_sample(barcodes),
-    project      = project,
-    sample_type  = substr(barcodes, 14, 15),
     chromosome   = rename_col(cnv_df, c("Chromosome", "chrom", "Chr")),
     start        = as.integer(rename_col(cnv_df, c("Start", "loc.start", "Start_Position"))),
     end          = as.integer(rename_col(cnv_df, c("End", "loc.end", "End_Position"))),

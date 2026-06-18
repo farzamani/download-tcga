@@ -4,7 +4,7 @@ channels:
   - bioconda
   - defaults
 dependencies:
-  - r-base=4.3
+  - r-base>=4.3
   - bioconductor-tcgabiolinks>=2.30
   - bioconductor-summarizedexperiment>=1.32
   - bioconductor-genomicranges>=1.54

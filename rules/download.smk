@@ -60,7 +60,7 @@ rule download_methylation:
     threads: 2
     resources:
         mem_mb  = 32000,
-        runtime = 240
+        runtime = 480      # methylation chunks are large; allow extra time for retries
     params:
         sample_type = config["sample_type"],
         gdc_cache   = config["dirs"]["gdc_cache"],

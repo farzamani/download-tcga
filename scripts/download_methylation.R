@@ -15,17 +15,15 @@ if (length(args) < 4) stop("Usage: download_methylation.R <project> <sample_type
 
 project     <- args[1]
 sample_type <- args[2]
-outfile     <- args[3]
-gdc_cache   <- args[4]
+outfile     <- normalizePath(args[3], mustWork = FALSE)
+gdc_cache   <- normalizePath(args[4], mustWork = FALSE)
 max_cpgs    <- if (length(args) >= 5 && args[5] != "null") as.integer(args[5]) else NULL
 
-barcode_to_patient <- function(bc) substr(bc, 1, 12)
-barcode_to_sample  <- function(bc) substr(bc, 1, 16)
+dir.create(gdc_cache, recursive = TRUE, showWarnings = FALSE)
+setwd(gdc_cache)
 
 write_empty <- function(path) {
-  fwrite(data.frame(barcode = character(), patient_id = character(),
-                    sample_id = character(), project = character(),
-                    sample_type = character()),
+  fwrite(data.frame(barcode = character()),
          path, sep = "\t", quote = FALSE)
   message("WARNING: wrote empty methylation.tsv for ", project)
 }
@@ -53,7 +51,22 @@ tryCatch({
     do.call(GDCquery, q_args)
   })
 
-  GDCdownload(query, method = "api", files.per.chunk = 50, directory = gdc_cache)
+  # Methylation chunks are large (~130 MB each at 10 files/chunk).
+  # Retry up to 3 times on transient GDC network errors.
+  max_attempts <- 3L
+  for (attempt in seq_len(max_attempts)) {
+    result <- tryCatch({
+      GDCdownload(query, method = "api", files.per.chunk = 10, directory = gdc_cache)
+      "ok"
+    }, error = function(e) conditionMessage(e))
+    if (identical(result, "ok")) break
+    if (attempt < max_attempts) {
+      message("Download attempt ", attempt, " failed — retrying: ", result)
+      Sys.sleep(30)
+    } else {
+      stop("GDCdownload failed after ", max_attempts, " attempts: ", result)
+    }
+  }
 
   # summarizedExperiment=FALSE returns a plain matrix (CpGs × samples) and
   # avoids the sesameData dependency introduced in TCGAbiolinks >= 2.29
@@ -69,18 +82,10 @@ tryCatch({
   barcodes <- colnames(beta_mat)
 
   out <- as.data.frame(t(beta_mat))
-  out <- cbind(
-    data.frame(barcode     = barcodes,
-               patient_id  = barcode_to_patient(barcodes),
-               sample_id   = barcode_to_sample(barcodes),
-               project     = project,
-               sample_type = substr(barcodes, 14, 15),
-               stringsAsFactors = FALSE),
-    out
-  )
+  out <- cbind(data.frame(barcode = barcodes, stringsAsFactors = FALSE), out)
 
   fwrite(out, outfile, sep = "\t", quote = FALSE, na = "NA")
-  message("SUCCESS: wrote ", nrow(out), " samples × ", ncol(out) - 5, " CpGs to ", outfile)
+  message("SUCCESS: wrote ", nrow(out), " samples × ", ncol(out) - 1L, " CpGs to ", outfile)
 
 }, error = function(e) {
   message("ERROR in download_methylation for ", project, ": ", conditionMessage(e))

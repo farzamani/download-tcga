@@ -14,16 +14,16 @@ if (length(args) < 4) stop("Usage: download_rna.R <project> <sample_type> <outfi
 
 project     <- args[1]
 sample_type <- args[2]
-outfile     <- args[3]
-gdc_cache   <- args[4]
+outfile     <- normalizePath(args[3], mustWork = FALSE)
+gdc_cache   <- normalizePath(args[4], mustWork = FALSE)
 
-barcode_to_patient <- function(bc) substr(bc, 1, 12)
-barcode_to_sample  <- function(bc) substr(bc, 1, 16)
+# Redirect all TCGAbiolinks temp files (tar.gz chunks, MANIFEST.txt, query
+# cache) to gdc_cache by making it the working directory for this script.
+dir.create(gdc_cache, recursive = TRUE, showWarnings = FALSE)
+setwd(gdc_cache)
 
 write_empty <- function(path) {
-  fwrite(data.frame(barcode = character(), patient_id = character(),
-                    sample_id = character(), project = character(),
-                    sample_type = character()),
+  fwrite(data.frame(barcode = character()),
          path, sep = "\t", quote = FALSE)
   message("WARNING: wrote empty rna.tsv for ", project)
 }
@@ -45,18 +45,11 @@ tryCatch({
   barcodes   <- colnames(counts_mat)
 
   out <- as.data.frame(t(counts_mat))
-  out <- cbind(
-    data.frame(barcode     = barcodes,
-               patient_id  = barcode_to_patient(barcodes),
-               sample_id   = barcode_to_sample(barcodes),
-               project     = project,
-               sample_type = substr(barcodes, 14, 15),
-               stringsAsFactors = FALSE),
-    out
-  )
+  out <- cbind(data.frame(barcode = barcodes, stringsAsFactors = FALSE), out)
 
   fwrite(out, outfile, sep = "\t", quote = FALSE)
-  message("SUCCESS: wrote ", nrow(out), " samples to ", outfile)
+  message("SUCCESS: wrote ", nrow(out), " samples x ",
+          ncol(out) - 1L, " genes to ", outfile)
 
 }, error = function(e) {
   message("ERROR in download_rna for ", project, ": ", conditionMessage(e))

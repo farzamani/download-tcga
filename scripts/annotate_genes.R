@@ -5,8 +5,8 @@ suppressPackageStartupMessages({
 
 # ---------------------------------------------------------------------------
 # Args: outfile
-# Produces a gene annotation table for all human protein-coding and non-coding
-# genes, keyed on Ensembl gene ID (the row IDs in rna.tsv).
+# Produces a gene annotation table for human protein-coding genes only,
+# keyed on Ensembl gene ID (the row IDs in rna.tsv).
 # ---------------------------------------------------------------------------
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 1) stop("Usage: annotate_genes.R <outfile>")
@@ -30,7 +30,9 @@ tryCatch({
   ann <- getBM(
     attributes = c("ensembl_gene_id", "hgnc_symbol", "gene_biotype",
                    "chromosome_name", "start_position", "end_position", "strand"),
-    mart = mart
+    filters    = "biotype",
+    values     = "protein_coding",
+    mart       = mart
   )
   setDT(ann)
   setnames(ann, c("gene_id", "gene_name", "gene_type",

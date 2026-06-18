@@ -33,4 +33,4 @@ projects:
 # Methylation: maximum number of CpG sites to retain per project.
 # Sites are ranked by variance (highest first) to keep the most informative probes.
 # Set to null to keep all sites (very large output).
-max_cpgs: 50000
+max_cpgs: 5000
