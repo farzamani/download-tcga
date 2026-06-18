@@ -7,7 +7,7 @@ rule download_rna:
         os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
     threads: 2
     resources:
-        mem_mb  = 16000,
+        mem_mb  = 32000,
         runtime = 120
     params:
         sample_type = config["sample_type"],
@@ -33,7 +33,7 @@ rule download_mirna:
         os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
     threads: 2
     resources:
-        mem_mb  = 8000,
+        mem_mb  = 16000,
         runtime = 60
     params:
         sample_type = config["sample_type"],
@@ -87,7 +87,7 @@ rule download_cnv:
         os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
     threads: 2
     resources:
-        mem_mb  = 8000,
+        mem_mb  = 16000,
         runtime = 60
     params:
         sample_type = config["sample_type"],
