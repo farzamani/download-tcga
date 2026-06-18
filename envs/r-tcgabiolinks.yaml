@@ -8,6 +8,8 @@ dependencies:
   - bioconductor-tcgabiolinks>=2.30
   - bioconductor-summarizedexperiment>=1.32
   - bioconductor-genomicranges>=1.54
+  - bioconductor-biomart>=2.58
+  - bioconductor-mirbaseconverter>=1.26
   - r-data.table>=1.14
   - r-matrixstats>=1.2
   - r-optparse>=1.7

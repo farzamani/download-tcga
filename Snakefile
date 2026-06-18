@@ -19,6 +19,7 @@ RAW       = config["dirs"]["raw"]
 PROCESSED = config["dirs"]["processed"]
 SUMMARY   = config["dirs"]["summary"]
 MERGED    = config["dirs"]["merged"]
+ANNOT     = config["dirs"]["annotation"]
 
 # ---------------------------------------------------------------------------
 # Rule modules
@@ -37,10 +38,12 @@ def all_targets():
     if config["modalities"]["run_rna"]:
         targets += expand(f"{RAW}/{{project}}/rna.tsv", project=PROJECTS)
         targets.append(f"{MERGED}/rna.tsv")
+        targets.append(f"{ANNOT}/gene_annotation.tsv")
 
     if config["modalities"]["run_mirna"]:
         targets += expand(f"{RAW}/{{project}}/mirna.tsv", project=PROJECTS)
         targets.append(f"{MERGED}/mirna.tsv")
+        targets.append(f"{ANNOT}/mirna_annotation.tsv")
 
     if config["modalities"]["run_methylation"]:
         targets += expand(f"{RAW}/{{project}}/methylation.tsv", project=PROJECTS)

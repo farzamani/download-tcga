@@ -54,9 +54,10 @@ tryCatch({
   })
 
   GDCdownload(query, method = "api", files.per.chunk = 50, directory = gdc_cache)
-  se <- GDCprepare(query, directory = gdc_cache)
 
-  beta_mat <- assay(se)   # CpGs × samples
+  # summarizedExperiment=FALSE returns a plain matrix (CpGs × samples) and
+  # avoids the sesameData dependency introduced in TCGAbiolinks >= 2.29
+  beta_mat <- GDCprepare(query, directory = gdc_cache, summarizedExperiment = FALSE)
 
   if (!is.null(max_cpgs) && nrow(beta_mat) > max_cpgs) {
     row_vars <- rowVars(beta_mat, na.rm = TRUE)
