@@ -1,9 +1,3 @@
-# Download rules — one per omics modality.
-# Each rule calls a dedicated R script that handles GDCquery/GDCdownload/GDCprepare
-# and writes a TSV to results/raw/{project}/.
-# On any error the R script writes an empty (header-only) TSV so that downstream
-# rules are not blocked and the summary step reports 0 samples.
-
 rule download_rna:
     output:
         tsv = f"{RAW}/{{project}}/rna.tsv"
@@ -14,16 +8,18 @@ rule download_rna:
     threads: 2
     resources:
         mem_mb  = 16000,
-        runtime = 120      # minutes
+        runtime = 120
     params:
-        sample_type = config["sample_type"]
+        sample_type = config["sample_type"],
+        gdc_cache   = config["dirs"]["gdc_cache"]
     shell:
         """
-        mkdir -p $(dirname {output.tsv})
+        mkdir -p $(dirname {output.tsv}) {params.gdc_cache}
         Rscript scripts/download_rna.R \
             {wildcards.project} \
             {params.sample_type} \
             {output.tsv} \
+            {params.gdc_cache} \
             > {log} 2>&1
         """
 
@@ -40,14 +36,16 @@ rule download_mirna:
         mem_mb  = 8000,
         runtime = 60
     params:
-        sample_type = config["sample_type"]
+        sample_type = config["sample_type"],
+        gdc_cache   = config["dirs"]["gdc_cache"]
     shell:
         """
-        mkdir -p $(dirname {output.tsv})
+        mkdir -p $(dirname {output.tsv}) {params.gdc_cache}
         Rscript scripts/download_mirna.R \
             {wildcards.project} \
             {params.sample_type} \
             {output.tsv} \
+            {params.gdc_cache} \
             > {log} 2>&1
         """
 
@@ -62,17 +60,19 @@ rule download_methylation:
     threads: 2
     resources:
         mem_mb  = 32000,
-        runtime = 240      # methylation files are large
+        runtime = 240
     params:
         sample_type = config["sample_type"],
+        gdc_cache   = config["dirs"]["gdc_cache"],
         max_cpgs    = config.get("max_cpgs", 50000)
     shell:
         """
-        mkdir -p $(dirname {output.tsv})
+        mkdir -p $(dirname {output.tsv}) {params.gdc_cache}
         Rscript scripts/download_methylation.R \
             {wildcards.project} \
             {params.sample_type} \
             {output.tsv} \
+            {params.gdc_cache} \
             {params.max_cpgs} \
             > {log} 2>&1
         """
@@ -90,13 +90,15 @@ rule download_cnv:
         mem_mb  = 8000,
         runtime = 60
     params:
-        sample_type = config["sample_type"]
+        sample_type = config["sample_type"],
+        gdc_cache   = config["dirs"]["gdc_cache"]
     shell:
         """
-        mkdir -p $(dirname {output.tsv})
+        mkdir -p $(dirname {output.tsv}) {params.gdc_cache}
         Rscript scripts/download_cnv.R \
             {wildcards.project} \
             {params.sample_type} \
             {output.tsv} \
+            {params.gdc_cache} \
             > {log} 2>&1
         """

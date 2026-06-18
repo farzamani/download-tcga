@@ -5,15 +5,17 @@ suppressPackageStartupMessages({
 })
 
 # ---------------------------------------------------------------------------
-# Args: project  sample_type  outfile
+# Args: project  sample_type  outfile  gdc_cache
 # sample_type: TCGA code such as "TP", or "all" to download every sample type
+# gdc_cache:   directory where GDCdownload stores raw files (e.g. results/cache)
 # ---------------------------------------------------------------------------
 args <- commandArgs(trailingOnly = TRUE)
-if (length(args) < 3) stop("Usage: download_mirna.R <project> <sample_type> <outfile>")
+if (length(args) < 4) stop("Usage: download_mirna.R <project> <sample_type> <outfile> <gdc_cache>")
 
 project     <- args[1]
 sample_type <- args[2]
 outfile     <- args[3]
+gdc_cache   <- args[4]
 
 barcode_to_patient <- function(bc) substr(bc, 1, 12)
 barcode_to_sample  <- function(bc) substr(bc, 1, 16)
@@ -37,8 +39,8 @@ tryCatch({
   if (sample_type != "all") query_args$sample.type <- sample_type
 
   query <- do.call(GDCquery, query_args)
-  GDCdownload(query, method = "api", files.per.chunk = 100)
-  se <- GDCprepare(query)
+  GDCdownload(query, method = "api", files.per.chunk = 100, directory = gdc_cache)
+  se <- GDCprepare(query, directory = gdc_cache)
 
   # Prefer reads_per_million_miRNA_mapped; fall back to the first available assay
   assay_name <- if ("reads_per_million_miRNA_mapped" %in% assayNames(se)) {

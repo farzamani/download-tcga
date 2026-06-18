@@ -6,16 +6,18 @@ suppressPackageStartupMessages({
 })
 
 # ---------------------------------------------------------------------------
-# Args: project  sample_type  outfile  [max_cpgs]
+# Args: project  sample_type  outfile  gdc_cache  [max_cpgs]
 # sample_type: TCGA code such as "TP", or "all" to download every sample type
+# gdc_cache:   directory where GDCdownload stores raw files (e.g. results/cache)
 # ---------------------------------------------------------------------------
 args <- commandArgs(trailingOnly = TRUE)
-if (length(args) < 3) stop("Usage: download_methylation.R <project> <sample_type> <outfile> [max_cpgs]")
+if (length(args) < 4) stop("Usage: download_methylation.R <project> <sample_type> <outfile> <gdc_cache> [max_cpgs]")
 
 project     <- args[1]
 sample_type <- args[2]
 outfile     <- args[3]
-max_cpgs    <- if (length(args) >= 4 && args[4] != "null") as.integer(args[4]) else NULL
+gdc_cache   <- args[4]
+max_cpgs    <- if (length(args) >= 5 && args[5] != "null") as.integer(args[5]) else NULL
 
 barcode_to_patient <- function(bc) substr(bc, 1, 12)
 barcode_to_sample  <- function(bc) substr(bc, 1, 16)
@@ -51,8 +53,8 @@ tryCatch({
     do.call(GDCquery, q_args)
   })
 
-  GDCdownload(query, method = "api", files.per.chunk = 50)
-  se <- GDCprepare(query)
+  GDCdownload(query, method = "api", files.per.chunk = 50, directory = gdc_cache)
+  se <- GDCprepare(query, directory = gdc_cache)
 
   beta_mat <- assay(se)   # CpGs × samples
 

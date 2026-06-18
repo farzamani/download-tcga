@@ -5,11 +5,15 @@ configfile: "config/config.yaml"
 
 # ---------------------------------------------------------------------------
 # Load project list (stdlib only — no numpy/pandas required)
+# config["projects"] overrides projects_file when set to a non-null list
 # ---------------------------------------------------------------------------
-PROJECTS = []
+_all_projects = []
 with open(config["projects_file"]) as _fh:
     for row in csv.DictReader(_fh, delimiter="\t"):
-        PROJECTS.append(row["project_id"])
+        _all_projects.append(row["project_id"])
+
+_subset = config.get("projects") or []
+PROJECTS = [p for p in _all_projects if p in _subset] if _subset else _all_projects
 
 RAW       = config["dirs"]["raw"]
 PROCESSED = config["dirs"]["processed"]

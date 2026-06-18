@@ -3,6 +3,7 @@ dirs:
   processed: results/processed
   summary: results/summary
   merged: results/merged
+  gdc_cache: results/cache    # GDCdownload writes here instead of the working directory
 
 # TCGA sample type filter.
 # "all" downloads every available sample type for each project.
@@ -17,8 +18,16 @@ modalities:
   run_cnv: true
   run_annotation: true
 
-# Path to the project list (relative to the working directory)
+# Path to the full project list (relative to the working directory)
 projects_file: config/projects.tsv
+
+# Subset of projects to actually run.
+# Set to null (or remove this key) to run all projects in projects_file.
+# Example to run only two projects:
+#   projects:
+#     - TCGA-BRCA
+#     - TCGA-LUAD
+projects: null
 
 # Methylation: maximum number of CpG sites to retain per project.
 # Sites are ranked by variance (highest first) to keep the most informative probes.
