@@ -15,9 +15,10 @@ if (length(args) < 4) stop("Usage: download_methylation.R <project> <sample_type
 
 project     <- args[1]
 sample_type <- args[2]
-outfile     <- normalizePath(args[3], mustWork = FALSE)
-gdc_cache   <- normalizePath(args[4], mustWork = FALSE)
-max_cpgs    <- if (length(args) >= 5 && args[5] != "null") as.integer(args[5]) else NULL
+abs_path  <- function(p) if (startsWith(p, "/")) p else file.path(getwd(), p)
+outfile   <- abs_path(args[3])
+gdc_cache <- abs_path(args[4])
+max_cpgs  <- if (length(args) >= 5 && args[5] != "null") as.integer(args[5]) else NULL
 
 dir.create(gdc_cache, recursive = TRUE, showWarnings = FALSE)
 setwd(gdc_cache)

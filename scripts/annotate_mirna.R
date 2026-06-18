@@ -8,6 +8,10 @@ suppressPackageStartupMessages({
 # Produces a miRNA annotation table keyed on precursor miRNA ID (e.g. hsa-mir-21),
 # which matches the column names used in mirna.tsv.
 # Source: miRBaseConverter v22 (bundled database, no internet required).
+#
+# Uses miRNA_PrecursorToMature() for reliable precursor→mature mapping.
+# Name-pattern stripping fails for multi-locus miRNAs (e.g. hsa-mir-9-1/2/3)
+# where the locus suffix prevents a clean name match to mature arms.
 # ---------------------------------------------------------------------------
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 1) stop("Usage: annotate_mirna.R <outfile>")
@@ -22,44 +26,54 @@ write_empty <- function(path) {
 }
 
 tryCatch({
-  # getAllMiRNAs returns columns: Accession, Name, Sequence (no Type column).
-  # Distinguish precursor vs mature by Accession prefix:
-  #   MI0...   = precursor
-  #   MIMAT... = mature
+  # All human miRNAs from bundled miRBase v22 database
   all_mirnas <- getAllMiRNAs(version = "v22", type = "all", species = "hsa")
   setDT(all_mirnas)
 
+  # Separate precursors (MI0...) and matures (MIMAT...)
   pre <- all_mirnas[startsWith(Accession, "MI0"),
                     .(mirna_id = Name, accession = Accession)]
-
   mat <- all_mirnas[startsWith(Accession, "MIMAT"),
                     .(mature_id = Name, mature_acc = Accession)]
 
-  # Derive expected precursor name from mature name:
-  #   hsa-miR-21-5p   → hsa-mir-21
-  #   hsa-let-7a-2-3p → hsa-let-7a-2
-  # Step 1: strip -5p / -3p / * suffix
-  # Step 2: mature IDs use capital miR; precursor names use lowercase mir
-  mat[, pre_name := gsub("-[35]p$|\\*$", "", mature_id)]
-  mat[, pre_name := gsub("-miR-", "-mir-", pre_name)]
-  mat[, pre_name := gsub("-miR$",  "-mir",  pre_name)]
+  # miRNA_PrecursorToMature() uses the miRBase database directly, so it
+  # correctly maps hsa-mir-9-1 → hsa-miR-9-5p + hsa-miR-9-3p without
+  # relying on name-pattern stripping that breaks for locus-suffixed names.
+  # Returns columns: OriginalName, Mature1, Mature2  (names only, no accessions)
+  mature_raw <- as.data.table(miRNA_PrecursorToMature(pre$mirna_id, version = "v22"))
+  setnames(mature_raw, "OriginalName", "mirna_id")
 
-  # Keep one 5p and one 3p per precursor (first match wins)
-  mat5 <- mat[grepl("-5p$", mature_id)][!duplicated(pre_name),
-              .(pre_name, mature_id_5p = mature_id, mature_acc_5p = mature_acc)]
-  mat3 <- mat[grepl("-3p$", mature_id)][!duplicated(pre_name),
-              .(pre_name, mature_id_3p = mature_id, mature_acc_3p = mature_acc)]
+  ann <- merge(pre, mature_raw, by = "mirna_id", all.x = TRUE)
 
-  ann <- merge(pre, mat5, by.x = "mirna_id", by.y = "pre_name", all.x = TRUE)
-  ann <- merge(ann, mat3, by.x = "mirna_id", by.y = "pre_name", all.x = TRUE)
+  # Mature1/Mature2 order is not guaranteed to be 5p-first.
+  # Assign arms by inspecting the -5p/-3p suffix in the mature name.
+  col_or_na <- function(nm) {
+    if (nm %in% colnames(ann)) ann[[nm]] else rep(NA_character_, nrow(ann))
+  }
+  m1 <- col_or_na("Mature1")
+  m2 <- col_or_na("Mature2")
 
-  setcolorder(ann, c("mirna_id", "accession",
-                     "mature_id_5p", "mature_acc_5p",
-                     "mature_id_3p", "mature_acc_3p"))
-  setorder(ann, mirna_id)
+  pick_id <- function(id1, id2, pattern) {
+    ifelse(!is.na(id1) & grepl(pattern, id1), id1,
+    ifelse(!is.na(id2) & grepl(pattern, id2), id2, NA_character_))
+  }
 
-  fwrite(ann, outfile, sep = "\t", quote = FALSE, na = "NA")
-  message("SUCCESS: wrote ", nrow(ann), " precursor miRNA records to ", outfile)
+  ann[, mature_id_5p := pick_id(m1, m2, "-5p$")]
+  ann[, mature_id_3p := pick_id(m1, m2, "-3p$")]
+
+  # Look up accessions for each mature from the matures table
+  acc_map        <- mat$mature_acc
+  names(acc_map) <- mat$mature_id
+  ann[, mature_acc_5p := unname(acc_map[mature_id_5p])]
+  ann[, mature_acc_3p := unname(acc_map[mature_id_3p])]
+
+  out <- ann[, .(mirna_id, accession,
+                 mature_id_5p, mature_acc_5p,
+                 mature_id_3p, mature_acc_3p)]
+  setorder(out, mirna_id)
+
+  fwrite(out, outfile, sep = "\t", quote = FALSE, na = "NA")
+  message("SUCCESS: wrote ", nrow(out), " precursor miRNA records to ", outfile)
 
 }, error = function(e) {
   message("ERROR in annotate_mirna: ", conditionMessage(e))

@@ -14,8 +14,12 @@ if (length(args) < 4) stop("Usage: download_rna.R <project> <sample_type> <outfi
 
 project     <- args[1]
 sample_type <- args[2]
-outfile     <- normalizePath(args[3], mustWork = FALSE)
-gdc_cache   <- normalizePath(args[4], mustWork = FALSE)
+# Resolve to absolute paths before setwd() changes the working directory.
+# normalizePath(mustWork=FALSE) is unreliable for non-existent paths on macOS;
+# file.path(getwd(), ...) always works.
+abs_path  <- function(p) if (startsWith(p, "/")) p else file.path(getwd(), p)
+outfile   <- abs_path(args[3])
+gdc_cache <- abs_path(args[4])
 
 # Redirect all TCGAbiolinks temp files (tar.gz chunks, MANIFEST.txt, query
 # cache) to gdc_cache by making it the working directory for this script.
