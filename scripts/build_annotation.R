@@ -117,8 +117,11 @@ tryCatch({
     cancer_type <- sub("TCGA-", "", project)
     proj_sub    <- all_sub[cancer.type == cancer_type]
     if (nrow(proj_sub) > 0) {
+      # pan.samplesID holds the full aliquot barcode (e.g. TCGA-3C-AAAU-01A-11R-A41B-07);
+      # truncate to 12 chars to get the patient-level barcode for joining.
+      proj_sub[, pid := substr(pan.samplesID, 1, 12)]
       sub_map        <- as.character(proj_sub$Subtype_Selected)
-      names(sub_map) <- proj_sub$pan.samplesID
+      names(sub_map) <- proj_sub$pid
       ann[, subtype := unname(sub_map[patient_id])]
     }
   }, error = function(e) {
