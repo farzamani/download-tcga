@@ -15,11 +15,10 @@ with open(config["projects_file"]) as _fh:
 _subset = config.get("projects") or []
 PROJECTS = [p for p in _all_projects if p in _subset] if _subset else _all_projects
 
-RAW       = config["dirs"]["raw"]
-PROCESSED = config["dirs"]["processed"]
-SUMMARY   = config["dirs"]["summary"]
-MERGED    = config["dirs"]["merged"]
-ANNOT     = config["dirs"]["annotation"]
+RAW     = config["dirs"]["raw"]
+SUMMARY = config["dirs"]["summary"]
+MERGED  = config["dirs"]["merged"]
+ANNOT   = config["dirs"]["annotation"]
 
 # ---------------------------------------------------------------------------
 # Rule modules
@@ -35,9 +34,9 @@ include: "rules/merge.smk"
 def all_targets():
     targets = []
 
-    if config["modalities"]["run_rna"]:
-        targets += expand(f"{RAW}/{{project}}/rna.tsv", project=PROJECTS)
-        targets.append(f"{MERGED}/rna.tsv")
+    if config["modalities"]["run_mrna"]:
+        targets += expand(f"{RAW}/{{project}}/mrna.tsv", project=PROJECTS)
+        targets.append(f"{MERGED}/mrna.tsv")
         targets.append(f"{ANNOT}/gene_annotation.tsv")
 
     if config["modalities"]["run_mirna"]:
@@ -54,7 +53,7 @@ def all_targets():
         targets.append(f"{MERGED}/cnv.tsv")
 
     if config["modalities"]["run_annotation"]:
-        targets += expand(f"{PROCESSED}/{{project}}/annotation.tsv", project=PROJECTS)
+        targets += expand(f"{ANNOT}/{{project}}/annotation.tsv", project=PROJECTS)
         targets.append(f"{MERGED}/annotation.tsv")
 
     # Per-project summary (always produced)

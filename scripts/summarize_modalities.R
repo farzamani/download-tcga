@@ -3,17 +3,16 @@ suppressPackageStartupMessages({
 })
 
 # ---------------------------------------------------------------------------
-# Args: project  raw_dir  processed_dir  outfile
+# Args: project  raw_dir  outfile
 # ---------------------------------------------------------------------------
 args <- commandArgs(trailingOnly = TRUE)
-if (length(args) < 4) {
-  stop("Usage: summarize_modalities.R <project> <raw_dir> <processed_dir> <outfile>")
+if (length(args) < 3) {
+  stop("Usage: summarize_modalities.R <project> <raw_dir> <outfile>")
 }
 
-project       <- args[1]
-raw_dir       <- args[2]
-processed_dir <- args[3]
-outfile       <- args[4]
+project <- args[1]
+raw_dir <- args[2]
+outfile <- args[3]
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -28,40 +27,37 @@ read_col <- function(path, col) {
 to_patient <- function(ids) unique(substr(ids, 1, 12))
 
 # ---------------------------------------------------------------------------
-# Collect unique sample identifiers per modality
+# Collect unique barcodes per data modality (annotation excluded — it is a
+# derived file, not an independent assay)
 # ---------------------------------------------------------------------------
 modalities <- list(
-  rna         = file.path(raw_dir, "rna.tsv"),
+  mrna        = file.path(raw_dir, "mrna.tsv"),
   mirna       = file.path(raw_dir, "mirna.tsv"),
   methylation = file.path(raw_dir, "methylation.tsv"),
-  cnv         = file.path(raw_dir, "cnv.tsv"),
-  annotation  = file.path(processed_dir, "annotation.tsv")
+  cnv         = file.path(raw_dir, "cnv.tsv")
 )
 
-id_col <- c(rna = "barcode", mirna = "barcode", methylation = "barcode",
-            cnv = "barcode", annotation = "barcode")
-
 sample_sets <- setNames(lapply(names(modalities), function(mod) {
-  read_col(modalities[[mod]], id_col[[mod]])
+  read_col(modalities[[mod]], "barcode")
 }), names(modalities))
 
 # ---------------------------------------------------------------------------
 # Per-modality sample counts
 # ---------------------------------------------------------------------------
 counts <- data.table(
-  project  = project,
-  modality = names(sample_sets),
+  project   = project,
+  modality  = names(sample_sets),
   n_samples = vapply(sample_sets, length, integer(1))
 )
 
 # ---------------------------------------------------------------------------
-# N-way patient-level overlap (2-way through 5-way, for modalities with data)
+# N-way patient-level overlap (2-way through 4-way, for modalities with data)
 # ---------------------------------------------------------------------------
 active <- names(which(vapply(sample_sets, length, integer(1)) > 0))
 
 if (length(active) >= 2) {
   overlap_rows <- list()
-  for (k in 2:min(length(active), 5)) {
+  for (k in 2:min(length(active), 4)) {
     combos <- combn(active, k, simplify = FALSE)
     for (combo in combos) {
       patient_sets <- lapply(combo, function(m) to_patient(sample_sets[[m]]))

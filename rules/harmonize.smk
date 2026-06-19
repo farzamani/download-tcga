@@ -1,7 +1,7 @@
 # Per-project annotation: clinical, subtype, tumor purity
 rule build_annotation:
     output:
-        tsv = f"{PROCESSED}/{{project}}/annotation.tsv"
+        tsv = f"{ANNOT}/{{project}}/annotation.tsv"
     log:
         "logs/build_annotation/{project}.log"
     conda:
@@ -21,7 +21,7 @@ rule build_annotation:
 
 
 # Global gene annotation (runs once, not per project)
-# Keyed on Ensembl gene ID — same IDs used as columns in rna.tsv
+# Keyed on Ensembl gene ID — same IDs used as columns in mrna.tsv
 rule annotate_genes:
     output:
         tsv = f"{ANNOT}/gene_annotation.tsv"

@@ -1,8 +1,8 @@
-rule download_rna:
+rule download_mrna:
     output:
-        tsv = f"{RAW}/{{project}}/rna.tsv"
+        tsv = f"{RAW}/{{project}}/mrna.tsv"
     log:
-        "logs/download_rna/{project}.log"
+        "logs/download_mrna/{project}.log"
     conda:
         os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
     threads: 2
@@ -15,7 +15,7 @@ rule download_rna:
     shell:
         """
         mkdir -p $(dirname {output.tsv}) {params.gdc_cache}
-        Rscript scripts/download_rna.R \
+        Rscript scripts/download_mrna.R \
             {wildcards.project} \
             {params.sample_type} \
             {output.tsv} \

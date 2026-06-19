@@ -14,7 +14,8 @@ args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 2) stop("Usage: build_annotation.R <project> <outfile>")
 
 project <- args[1]
-outfile <- normalizePath(args[2], mustWork = FALSE)
+abs_path <- function(p) if (startsWith(p, "/")) p else file.path(getwd(), p)
+outfile  <- abs_path(args[2])
 
 write_empty <- function(path) {
   fwrite(data.frame(
@@ -23,7 +24,7 @@ write_empty <- function(path) {
     subtype = character(),
     tumor_purity    = numeric(), ABSOLUTE_purity = numeric(),
     ESTIMATE_purity = numeric(), LUMP_purity     = numeric(),
-    IHC_purity      = numeric(), TIMER_purity    = numeric(),
+    IHC_purity      = numeric(),
     gender = character(), age_at_diagnosis = numeric(), tumor_stage = character(),
     vital_status = character(), days_to_death = numeric(),
     days_to_last_follow_up = numeric()
@@ -105,68 +106,64 @@ tryCatch({
   }
 
   # ------------------------------------------------------------------
-  # 3. Molecular subtype (not available for all projects; NA if missing)
+  # 3. Molecular subtype — Pan-Cancer Atlas subtypes (all projects)
+  # PanCancerAtlas_subtypes() returns a bundled tibble keyed on 12-char
+  # patient barcode (pan.samplesID).  Subtype_Selected is the recommended
+  # consensus subtype for each cancer type.
   # ------------------------------------------------------------------
   ann[, subtype := NA_character_]
   tryCatch({
-    sub_df <- TCGAquery_subtype(tumor = sub("TCGA-", "", project))
-    if (!is.null(sub_df) && nrow(sub_df) > 0) {
-      sub_dt  <- as.data.table(sub_df)
-      sub_col <- intersect(c("Subtype_Selected", "Subtype_mRNA", "Subtype", "subtype"), colnames(sub_dt))
-      pid_col <- intersect(c("patient", "bcr_patient_barcode", "submitter_id"), colnames(sub_dt))
-      if (length(sub_col) && length(pid_col)) {
-        sub_map        <- as.character(sub_dt[[sub_col[1]]])
-        names(sub_map) <- sub_dt[[pid_col[1]]]
-        ann[, subtype := unname(sub_map[patient_id])]
-      }
+    all_sub     <- as.data.table(PanCancerAtlas_subtypes())
+    cancer_type <- sub("TCGA-", "", project)
+    proj_sub    <- all_sub[cancer.type == cancer_type]
+    if (nrow(proj_sub) > 0) {
+      sub_map        <- as.character(proj_sub$Subtype_Selected)
+      names(sub_map) <- proj_sub$pan.samplesID
+      ann[, subtype := unname(sub_map[patient_id])]
     }
   }, error = function(e) {
     message("Subtype query failed for ", project, " (skipping): ", conditionMessage(e))
   })
 
   # ------------------------------------------------------------------
-  # 4. Tumor purity — 5 independent algorithms + consensus estimate
-  # TCGAtumor_purity() matches on the first 16 chars of the barcode.
-  # Algorithms:
-  #   CPE      = consensus (median of available methods) → renamed tumor_purity
-  #   ABSOLUTE = based on somatic copy-number + LOH
-  #   ESTIMATE = based on gene-expression (high immune/stromal → lower purity)
-  #   LUMP     = based on DNA methylation at leukocyte-specific loci
+  # 4. Tumor purity — 4 algorithms + consensus (from bundled TCGAbiolinks dataset)
+  # Tumor.purity is keyed on Sample.ID (16-char barcode, e.g. TCGA-A1-A0SO-01A).
+  # Values may be stored with comma-decimal notation depending on R locale;
+  # convert to numeric defensively.
+  # Columns:
+  #   CPE      = consensus purity estimate (median of available methods)
+  #   ESTIMATE = expression-based (high immune/stromal → lower purity)
+  #   ABSOLUTE = copy-number / LOH based
+  #   LUMP     = DNA methylation at leukocyte-specific loci
   #   IHC      = pathologist estimate from immunohistochemistry
-  #   TIMER    = based on immune-cell deconvolution
   # ------------------------------------------------------------------
   purity_dt <- tryCatch({
-    pur <- TCGAtumor_purity(samples = unique(ann$sample_id))
-    if (is.null(pur) || nrow(pur) == 0) return(NULL)
-    setDT(pur)
-    id_col <- intersect(c("TCGA_sample", "sample", "barcode"), colnames(pur))[1]
+    data("Tumor.purity", package = "TCGAbiolinks", envir = environment())
+    pur <- as.data.table(Tumor.purity)
+    to_num <- function(x) suppressWarnings(as.numeric(gsub(",", ".", as.character(x))))
+    for (col in intersect(c("CPE", "ESTIMATE", "ABSOLUTE", "LUMP", "IHC"), colnames(pur)))
+      pur[, (col) := to_num(get(col))]
+    id_col <- intersect(c("Sample.ID", "sample_id"), colnames(pur))[1]
     if (is.na(id_col)) return(NULL)
     setnames(pur, id_col, "sample_id")
-    pur
+    setnames(pur, c("CPE", "ESTIMATE", "ABSOLUTE", "LUMP", "IHC"),
+             c("tumor_purity", "ESTIMATE_purity", "ABSOLUTE_purity", "LUMP_purity", "IHC_purity"),
+             skip_absent = TRUE)
+    pur[sample_id %in% ann$sample_id]
   }, error = function(e) {
-    message("Tumor purity query failed for ", project, " (skipping): ", conditionMessage(e))
+    message("Tumor purity load failed (skipping): ", conditionMessage(e))
     NULL
   })
 
-  if (!is.null(purity_dt)) {
-    rename_if <- function(dt, old, new) {
-      if (old %in% colnames(dt) && !(new %in% colnames(dt))) setnames(dt, old, new)
-    }
-    rename_if(purity_dt, "CPE",      "tumor_purity")
-    rename_if(purity_dt, "ABSOLUTE", "ABSOLUTE_purity")
-    rename_if(purity_dt, "ESTIMATE", "ESTIMATE_purity")
-    rename_if(purity_dt, "LUMP",     "LUMP_purity")
-    rename_if(purity_dt, "IHC",      "IHC_purity")
-    rename_if(purity_dt, "TIMER",    "TIMER_purity")
-
+  if (!is.null(purity_dt) && nrow(purity_dt) > 0) {
     keep_cols <- c("sample_id",
                    intersect(c("tumor_purity", "ABSOLUTE_purity", "ESTIMATE_purity",
-                               "LUMP_purity",  "IHC_purity",      "TIMER_purity"),
+                               "LUMP_purity",  "IHC_purity"),
                              colnames(purity_dt)))
     ann <- merge(ann, purity_dt[, ..keep_cols], by = "sample_id", all.x = TRUE)
   } else {
     for (col in c("tumor_purity", "ABSOLUTE_purity", "ESTIMATE_purity",
-                  "LUMP_purity", "IHC_purity", "TIMER_purity"))
+                  "LUMP_purity", "IHC_purity"))
       ann[, (col) := NA_real_]
   }
 
@@ -176,7 +173,7 @@ tryCatch({
   preferred <- c("barcode", "patient_id", "sample_id", "project",
                  "sample_type", "sample_type_code", "subtype",
                  "tumor_purity", "ABSOLUTE_purity", "ESTIMATE_purity",
-                 "LUMP_purity",  "IHC_purity",      "TIMER_purity",
+                 "LUMP_purity",  "IHC_purity",
                  "gender", "age_at_diagnosis", "tumor_stage",
                  "vital_status", "days_to_death", "days_to_last_follow_up")
   have  <- intersect(preferred, colnames(ann))

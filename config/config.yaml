@@ -1,6 +1,5 @@
 dirs:
   raw: results/raw
-  processed: results/processed
   summary: results/summary
   merged: results/merged
   annotation: results/annotation
@@ -13,7 +12,7 @@ dirs:
 sample_type: "all"
 
 modalities:
-  run_rna: true
+  run_mrna: true
   run_mirna: true
   run_methylation: true
   run_cnv: true

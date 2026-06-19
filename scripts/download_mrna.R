@@ -10,7 +10,7 @@ suppressPackageStartupMessages({
 # gdc_cache:   directory where GDCdownload stores raw files (e.g. results/cache)
 # ---------------------------------------------------------------------------
 args <- commandArgs(trailingOnly = TRUE)
-if (length(args) < 4) stop("Usage: download_rna.R <project> <sample_type> <outfile> <gdc_cache>")
+if (length(args) < 4) stop("Usage: download_mrna.R <project> <sample_type> <outfile> <gdc_cache>")
 
 project     <- args[1]
 sample_type <- args[2]
@@ -29,7 +29,7 @@ setwd(gdc_cache)
 write_empty <- function(path) {
   fwrite(data.frame(barcode = character()),
          path, sep = "\t", quote = FALSE)
-  message("WARNING: wrote empty rna.tsv for ", project)
+  message("WARNING: wrote empty mrna.tsv for ", project)
 }
 
 tryCatch({
@@ -48,6 +48,10 @@ tryCatch({
   counts_mat <- assay(se, "unstranded")   # genes × samples
   barcodes   <- colnames(counts_mat)
 
+  # Strip Ensembl version suffix so IDs match gene_annotation.tsv
+  # ENSG00000000003.15 → ENSG00000000003
+  rownames(counts_mat) <- sub("\\.[0-9]+$", "", rownames(counts_mat))
+
   out <- as.data.frame(t(counts_mat))
   out <- cbind(data.frame(barcode = barcodes, stringsAsFactors = FALSE), out)
 
@@ -56,6 +60,6 @@ tryCatch({
           ncol(out) - 1L, " genes to ", outfile)
 
 }, error = function(e) {
-  message("ERROR in download_rna for ", project, ": ", conditionMessage(e))
+  message("ERROR in download_mrna for ", project, ": ", conditionMessage(e))
   write_empty(outfile)
 })

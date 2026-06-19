@@ -3,13 +3,13 @@
 # the merged matrix contains only probes/genes present in every project.
 # Long-format modalities (cnv, annotation): simple row-bind, no feature alignment needed.
 
-rule merge_rna:
+rule merge_mrna:
     input:
-        tsvs = expand(f"{RAW}/{{project}}/rna.tsv", project=PROJECTS)
+        tsvs = expand(f"{RAW}/{{project}}/mrna.tsv", project=PROJECTS)
     output:
-        tsv = f"{MERGED}/rna.tsv"
+        tsv = f"{MERGED}/mrna.tsv"
     log:
-        "logs/merge/rna.log"
+        "logs/merge/mrna.log"
     conda:
         os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
     threads: 2
@@ -89,7 +89,7 @@ rule merge_cnv:
 
 rule merge_annotation:
     input:
-        tsvs = expand(f"{PROCESSED}/{{project}}/annotation.tsv", project=PROJECTS)
+        tsvs = expand(f"{ANNOT}/{{project}}/annotation.tsv", project=PROJECTS)
     output:
         tsv = f"{MERGED}/annotation.tsv"
     log:
