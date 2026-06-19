@@ -80,6 +80,8 @@ tryCatch({
     message("Kept top ", max_cpgs, " variable CpGs out of ", length(row_vars))
   }
 
+  beta_mat <- round(beta_mat, 4)
+
   barcodes <- colnames(beta_mat)
 
   out <- as.data.frame(t(beta_mat))

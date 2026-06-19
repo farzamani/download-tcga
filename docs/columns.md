@@ -12,6 +12,8 @@ One row per GDC sample aliquot.  Clinical columns are patient-level and are repe
 | `patient_id` | string | First 12 characters of the barcode — uniquely identifies a patient across all TCGA projects. |
 | `sample_id` | string | First 16 characters of the barcode — identifies a tissue sample (one patient may have multiple: tumor, normal, metastatic). |
 | `project` | string | TCGA project identifier, e.g. `TCGA-BRCA`. |
+| `project_name` | string | Full GDC project name, e.g. `Breast Invasive Carcinoma`, `Brain Lower Grade Glioma`. |
+| `primary_site` | string | Primary anatomical site from GDC, e.g. `Brain`, `Breast`, `Bronchus and lung`. |
 | `sample_type` | string | Human-readable GDC sample type label, e.g. `Primary Tumor`, `Solid Tissue Normal`, `Blood Derived Normal`. |
 | `sample_type_code` | string | Two-digit numeric code from barcode positions 14–15. Common values: `01` = Primary Solid Tumor, `06` = Metastatic, `10` = Blood Derived Normal, `11` = Solid Tissue Normal. Full list at https://gdc.cancer.gov/resources-tcga-users/tcga-code-tables/sample-type-codes |
 | `subtype` | string | Pan-Cancer Atlas consensus subtype (`Subtype_Selected` from `PanCancerAtlas_subtypes()`). `NA` for projects not covered by the Atlas. Example values for BRCA: `BRCA.Basal`, `BRCA.LumA`, `BRCA.LumB`, `BRCA.Her2`, `BRCA.Normal`. |
@@ -32,13 +34,17 @@ Tumor purity is the fraction of a bulk tumor sample that consists of cancer cell
 
 ### Clinical columns
 
-Patient-level data from GDC clinical XML (`GDCquery_clinic`). Repeated for every sample from the same patient.
+Patient-level data from the GDC REST API (`/cases` endpoint). Repeated for every sample from the same patient.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `gender` | string | Patient biological sex: `male` or `female`. |
-| `age_at_diagnosis` | integer | Age in years at the time of initial pathologic diagnosis. |
-| `tumor_stage` | string | Pathologic stage (AJCC), e.g. `Stage I`, `Stage IIA`, `Stage IV`. Conventions vary by project. |
+| `race` | string | Self-reported race, e.g. `white`, `black or african american`, `asian`, `not reported`. |
+| `ethnicity` | string | Self-reported ethnicity: `hispanic or latino`, `not hispanic or latino`, `not reported`. |
+| `age_at_diagnosis` | integer | Age in **years** at the time of initial pathologic diagnosis (converted from days). |
+| `tumor_stage` | string | AJCC pathologic stage, e.g. `Stage I`, `Stage IIA`, `Stage IV`. Convention varies by project. |
+| `primary_diagnosis` | string | Specific histological diagnosis from ICD-O-3, e.g. `Infiltrating duct carcinoma, NOS`, `Oligodendroglioma, NOS`. More specific than `project_name`. |
+| `tissue_or_organ_of_origin` | string | Specific site of origin from ICD-O-3 topography, e.g. `Brain, NOS`, `Upper-outer quadrant of breast`. More specific than `primary_site`. |
 | `vital_status` | string | `Alive` or `Dead` at last follow-up. |
 | `days_to_death` | integer | Days from diagnosis to death. `NA` for patients still alive. |
 | `days_to_last_follow_up` | integer | Days from diagnosis to last recorded contact. Use with `vital_status` for survival analysis. |

@@ -1,31 +1,29 @@
 suppressPackageStartupMessages({
   library(TCGAbiolinks)
+  library(jsonlite)
   library(data.table)
 })
 
 # ---------------------------------------------------------------------------
 # Args: project  outfile
-# Produces one row per GDC sample (not per patient).  Actual sample barcodes
-# and sample-type labels come from the GDC file manifest; clinical covariates
-# from GDCquery_clinic are patient-level and are joined across all samples
-# belonging to the same patient.
 # ---------------------------------------------------------------------------
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) < 2) stop("Usage: build_annotation.R <project> <outfile>")
 
-project <- args[1]
+project  <- args[1]
 abs_path <- function(p) if (startsWith(p, "/")) p else file.path(getwd(), p)
 outfile  <- abs_path(args[2])
 
 write_empty <- function(path) {
   fwrite(data.frame(
     barcode = character(), patient_id = character(), sample_id = character(),
-    project = character(), sample_type = character(), sample_type_code = character(),
-    subtype = character(),
-    tumor_purity    = numeric(), ABSOLUTE_purity = numeric(),
-    ESTIMATE_purity = numeric(), LUMP_purity     = numeric(),
-    IHC_purity      = numeric(),
-    gender = character(), age_at_diagnosis = numeric(), tumor_stage = character(),
+    project = character(), project_name = character(), primary_site = character(),
+    sample_type = character(), sample_type_code = character(), subtype = character(),
+    tumor_purity = numeric(), ABSOLUTE_purity = numeric(),
+    ESTIMATE_purity = numeric(), LUMP_purity = numeric(), IHC_purity = numeric(),
+    gender = character(), race = character(), ethnicity = character(),
+    age_at_diagnosis = integer(), tumor_stage = character(),
+    primary_diagnosis = character(), tissue_or_organ_of_origin = character(),
     vital_status = character(), days_to_death = numeric(),
     days_to_last_follow_up = numeric()
   ), path, sep = "\t", quote = FALSE)
@@ -35,8 +33,7 @@ write_empty <- function(path) {
 tryCatch({
 
   # ------------------------------------------------------------------
-  # 1. Sample manifest — actual barcodes + sample-type labels from GDC
-  # Try data types in preference order; first successful query is used.
+  # 1. Sample manifest — barcodes + sample-type labels from GDC
   # ------------------------------------------------------------------
   manifest <- NULL
   for (spec in list(
@@ -75,41 +72,99 @@ tryCatch({
   manifest[, project := project]
 
   # ------------------------------------------------------------------
-  # 2. Clinical data (patient-level — joined to every sample via patient_id)
+  # 2. Project-level metadata: full name and primary anatomical site
   # ------------------------------------------------------------------
-  safe_col <- function(dt, candidates, default = NA_character_) {
-    m <- intersect(candidates, colnames(dt))
-    if (length(m)) dt[[m[1]]] else rep(default, nrow(dt))
+  tryCatch({
+    all_proj <- as.data.table(getGDCprojects())
+    row      <- all_proj[id == project]
+    if (nrow(row) > 0) {
+      manifest[, project_name := as.character(row$name[1])]
+      manifest[, primary_site := paste(unlist(row$primary_site[[1]]), collapse = ", ")]
+    } else {
+      manifest[, c("project_name", "primary_site") := NA_character_]
+    }
+  }, error = function(e) {
+    message("getGDCprojects failed (skipping): ", conditionMessage(e))
+    manifest[, c("project_name", "primary_site") := NA_character_]
+  })
+
+  # ------------------------------------------------------------------
+  # 3. Clinical data — direct GDC REST API query
+  #
+  # GDCquery_clinic() has a data.table version conflict that causes it to
+  # crash whenever patients have multiple follow-up or diagnosis records
+  # (e.g. TCGA-LGG, TCGA-BRCA).  Querying the GDC API directly avoids
+  # the bug entirely and also gives us additional fields (race, ethnicity,
+  # primary_diagnosis, tissue_or_organ_of_origin).
+  #
+  # age_at_diagnosis is returned in DAYS by the GDC API; converted to years.
+  # ------------------------------------------------------------------
+  gdc_clinical <- function(proj) {
+    fields <- paste(c(
+      "submitter_id",
+      "demographic.gender", "demographic.race", "demographic.ethnicity",
+      "demographic.vital_status", "demographic.days_to_death",
+      "diagnoses.age_at_diagnosis", "diagnoses.ajcc_pathologic_stage",
+      "diagnoses.primary_diagnosis", "diagnoses.tissue_or_organ_of_origin",
+      "diagnoses.days_to_last_follow_up"
+    ), collapse = ",")
+    filt <- sprintf(
+      '{"op":"=","content":{"field":"project.project_id","value":"%s"}}', proj
+    )
+    url <- paste0(
+      "https://api.gdc.cancer.gov/cases?",
+      "filters=", URLencode(filt, reserved = TRUE),
+      "&fields=", fields,
+      "&size=10000&format=JSON"
+    )
+    tryCatch(fromJSON(url)$data$hits, error = function(e) {
+      message("GDC clinical API failed (skipping): ", conditionMessage(e))
+      NULL
+    })
   }
 
-  clinical_raw <- tryCatch(
-    GDCquery_clinic(project = project, type = "clinical"),
-    error = function(e) { message("Clinical query failed (skipping): ", conditionMessage(e)); NULL }
-  )
+  # Extract the first non-NA value from a list-of-data.frames column
+  first_val <- function(lst, col) {
+    vapply(lst, function(x) {
+      if (is.null(x) || !is.data.frame(x) || !col %in% names(x)) return(NA_character_)
+      v <- na.omit(as.character(x[[col]]))
+      if (length(v) == 0) NA_character_ else v[1]
+    }, character(1))
+  }
 
-  if (!is.null(clinical_raw) && nrow(clinical_raw) > 0) {
-    clin <- as.data.table(clinical_raw)
-    clin_ann <- data.table(
-      patient_id             = safe_col(clin, c("submitter_id", "bcr_patient_barcode")),
-      gender                 = safe_col(clin, c("gender", "sex")),
-      age_at_diagnosis       = suppressWarnings(as.numeric(safe_col(clin, c("age_at_index", "age_at_diagnosis")))),
-      tumor_stage            = safe_col(clin, c("ajcc_pathologic_stage", "tumor_stage", "clinical_stage")),
-      vital_status           = safe_col(clin, c("vital_status")),
-      days_to_death          = suppressWarnings(as.numeric(safe_col(clin, c("days_to_death")))),
-      days_to_last_follow_up = suppressWarnings(as.numeric(safe_col(clin, c("days_to_last_follow_up"))))
+  hits <- gdc_clinical(project)
+  if (!is.null(hits) && nrow(hits) > 0) {
+    clin <- data.table(
+      patient_id                = hits$submitter_id,
+      gender                    = hits$demographic$gender,
+      race                      = hits$demographic$race,
+      ethnicity                 = hits$demographic$ethnicity,
+      vital_status              = hits$demographic$vital_status,
+      days_to_death             = suppressWarnings(as.numeric(hits$demographic$days_to_death)),
+      age_at_diagnosis          = as.integer(
+        suppressWarnings(as.numeric(first_val(hits$diagnoses, "age_at_diagnosis"))) / 365.25
+      ),
+      tumor_stage               = first_val(hits$diagnoses, "ajcc_pathologic_stage"),
+      primary_diagnosis         = first_val(hits$diagnoses, "primary_diagnosis"),
+      tissue_or_organ_of_origin = first_val(hits$diagnoses, "tissue_or_organ_of_origin"),
+      days_to_last_follow_up    = suppressWarnings(
+        as.numeric(first_val(hits$diagnoses, "days_to_last_follow_up"))
+      )
     )
-    ann <- merge(manifest, clin_ann, by = "patient_id", all.x = TRUE)
+    ann <- merge(manifest, clin, by = "patient_id", all.x = TRUE)
   } else {
     ann <- copy(manifest)
-    for (col in c("gender", "tumor_stage", "vital_status")) ann[, (col) := NA_character_]
-    for (col in c("age_at_diagnosis", "days_to_death", "days_to_last_follow_up")) ann[, (col) := NA_real_]
+    for (col in c("gender", "race", "ethnicity", "tumor_stage", "vital_status",
+                  "primary_diagnosis", "tissue_or_organ_of_origin"))
+      ann[, (col) := NA_character_]
+    for (col in c("age_at_diagnosis", "days_to_death", "days_to_last_follow_up"))
+      ann[, (col) := NA_integer_]
   }
 
   # ------------------------------------------------------------------
-  # 3. Molecular subtype — Pan-Cancer Atlas subtypes (all projects)
-  # PanCancerAtlas_subtypes() returns a bundled tibble keyed on 12-char
-  # patient barcode (pan.samplesID).  Subtype_Selected is the recommended
-  # consensus subtype for each cancer type.
+  # 4. Molecular subtype — Pan-Cancer Atlas
+  # pan.samplesID holds the full aliquot barcode; truncate to 12 chars
+  # to get the patient-level barcode for joining.
   # ------------------------------------------------------------------
   ann[, subtype := NA_character_]
   tryCatch({
@@ -117,8 +172,6 @@ tryCatch({
     cancer_type <- sub("TCGA-", "", project)
     proj_sub    <- all_sub[cancer.type == cancer_type]
     if (nrow(proj_sub) > 0) {
-      # pan.samplesID holds the full aliquot barcode (e.g. TCGA-3C-AAAU-01A-11R-A41B-07);
-      # truncate to 12 chars to get the patient-level barcode for joining.
       proj_sub[, pid := substr(pan.samplesID, 1, 12)]
       sub_map        <- as.character(proj_sub$Subtype_Selected)
       names(sub_map) <- proj_sub$pid
@@ -129,16 +182,7 @@ tryCatch({
   })
 
   # ------------------------------------------------------------------
-  # 4. Tumor purity — 4 algorithms + consensus (from bundled TCGAbiolinks dataset)
-  # Tumor.purity is keyed on Sample.ID (16-char barcode, e.g. TCGA-A1-A0SO-01A).
-  # Values may be stored with comma-decimal notation depending on R locale;
-  # convert to numeric defensively.
-  # Columns:
-  #   CPE      = consensus purity estimate (median of available methods)
-  #   ESTIMATE = expression-based (high immune/stromal → lower purity)
-  #   ABSOLUTE = copy-number / LOH based
-  #   LUMP     = DNA methylation at leukocyte-specific loci
-  #   IHC      = pathologist estimate from immunohistochemistry
+  # 5. Tumor purity — bundled TCGAbiolinks dataset
   # ------------------------------------------------------------------
   purity_dt <- tryCatch({
     data("Tumor.purity", package = "TCGAbiolinks", envir = environment())
@@ -171,14 +215,18 @@ tryCatch({
   }
 
   # ------------------------------------------------------------------
-  # 5. Final column order
+  # 6. Final column order
   # ------------------------------------------------------------------
-  preferred <- c("barcode", "patient_id", "sample_id", "project",
-                 "sample_type", "sample_type_code", "subtype",
-                 "tumor_purity", "ABSOLUTE_purity", "ESTIMATE_purity",
-                 "LUMP_purity",  "IHC_purity",
-                 "gender", "age_at_diagnosis", "tumor_stage",
-                 "vital_status", "days_to_death", "days_to_last_follow_up")
+  preferred <- c(
+    "barcode", "patient_id", "sample_id",
+    "project", "project_name", "primary_site",
+    "sample_type", "sample_type_code", "subtype",
+    "tumor_purity", "ABSOLUTE_purity", "ESTIMATE_purity", "LUMP_purity", "IHC_purity",
+    "gender", "race", "ethnicity",
+    "age_at_diagnosis", "tumor_stage",
+    "primary_diagnosis", "tissue_or_organ_of_origin",
+    "vital_status", "days_to_death", "days_to_last_follow_up"
+  )
   have  <- intersect(preferred, colnames(ann))
   extra <- setdiff(colnames(ann), have)
   setcolorder(ann, c(have, extra))
