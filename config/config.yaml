@@ -29,6 +29,14 @@ projects:
   - TCGA-LUAD
 # projects: null
 
+# List of TCGA project:
+#   High-Volume Types: BRCA (~1,098), LUAD (~585), UCEC (~548), KIRC (~533), 
+#       HNSC (~528), LGG (~516), THCA (~507), LUSC (~504), PRAD (~498), COAD (~459).
+#   Mid-Volume Types: STAD (~415), BLCA (~412), LIHC (~377), OV (~307), CESC (~306), KIRP (~290), 
+#       SARC (~261), LAML (~200), ESCA (~184), PCPG (~179), PAAD (~177), GBM (~169), READ (~166).
+#   Lower-Volume Types: TGCT (~150), THYM (~120), MESO (~87), UVM (~80), ACC (~79), KICH (~66), 
+#       UCS (~57), DLBC (~48), CHOL (~36).
+
 # Methylation: maximum number of CpG sites to retain per project.
 # Sites are ranked by variance (highest first) to keep the most informative probes.
 # Set to null to keep all sites (very large output).
