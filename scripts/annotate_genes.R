@@ -23,9 +23,24 @@ write_empty <- function(path) {
 }
 
 tryCatch({
-  mart <- useMart("ensembl",
-                  dataset = "hsapiens_gene_ensembl",
-                  host    = "https://ensembl.org")
+  # ensembl.org occasionally redirects/rate-limits or is unreachable from
+  # some networks (e.g. HPC compute nodes with restricted outbound access);
+  # try a couple of Ensembl's other mirror hosts before giving up.
+  hosts <- c("https://ensembl.org", "https://useast.ensembl.org", "https://asia.ensembl.org")
+  mart  <- NULL
+  last_error <- NULL
+  for (h in hosts) {
+    mart <- tryCatch(
+      useMart("ensembl", dataset = "hsapiens_gene_ensembl", host = h),
+      error = function(e) { last_error <<- e; NULL }
+    )
+    if (!is.null(mart)) {
+      message("Connected to Ensembl BioMart via ", h)
+      break
+    }
+    message("Could not reach Ensembl BioMart via ", h, " — ", conditionMessage(last_error))
+  }
+  if (is.null(mart)) stop("Could not reach any Ensembl BioMart mirror: ", conditionMessage(last_error))
 
   ann <- getBM(
     attributes = c("ensembl_gene_id", "hgnc_symbol", "gene_biotype",

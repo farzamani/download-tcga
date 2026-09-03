@@ -39,8 +39,13 @@ tryCatch({
   # a plain ID intersection, no genomic-coordinate overlap needed since
   # GDC already gene-summarized the segments on their end.
   gene_ann <- fread(gene_ann_file, showProgress = FALSE)
-  if (!"gene_id" %in% colnames(gene_ann) || nrow(gene_ann) == 0) {
-    stop("gene_annotation_file has no usable gene_id column: ", gene_ann_file)
+  if (!"gene_id" %in% colnames(gene_ann)) {
+    stop("gene_annotation_file has no gene_id column: ", gene_ann_file)
+  }
+  if (nrow(gene_ann) == 0) {
+    stop("gene_annotation_file is empty (0 genes): ", gene_ann_file,
+         " - annotate_genes.R likely failed (e.g. biomaRt/Ensembl unreachable); ",
+         "check logs/annotate_genes.log and rerun that rule before retrying this one")
   }
   target_genes <- unique(gene_ann$gene_id)
 
