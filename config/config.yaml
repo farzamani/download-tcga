@@ -9,13 +9,14 @@ dirs:
 # "all" downloads every available sample type for each project.
 # To restrict to a specific type use a code: "TP" (Primary Tumor),
 # "NT" (Solid Tissue Normal), "TB" (Blood Derived Normal), etc.
-sample_type: "all"
+sample_type: "TP"
 
 modalities:
   run_mrna: true
   run_mirna: true
   run_methylation: true
   run_cnv: true
+  run_cnv_gene: true    # GDC's gene-level CNV, mapped to the same genes as mrna.tsv
   run_annotation: true
 
 # Path to the full project list (relative to the working directory)
@@ -24,20 +25,21 @@ projects_file: config/projects.tsv
 # Subset of projects to actually run.
 # Set to null (or remove this key) to run all projects in projects_file.
 # Example to run only two projects:
-projects:
-  - TCGA-BRCA
-  - TCGA-LUAD
-# projects: null
+#projects:
+#  - TCGA-BRCA
+#  - TCGA-LUAD
+projects: null
 
-# List of TCGA project:
-#   High-Volume Types: BRCA (~1,098), LUAD (~585), UCEC (~548), KIRC (~533), 
-#       HNSC (~528), LGG (~516), THCA (~507), LUSC (~504), PRAD (~498), COAD (~459).
-#   Mid-Volume Types: STAD (~415), BLCA (~412), LIHC (~377), OV (~307), CESC (~306), KIRP (~290), 
-#       SARC (~261), LAML (~200), ESCA (~184), PCPG (~179), PAAD (~177), GBM (~169), READ (~166).
-#   Lower-Volume Types: TGCT (~150), THYM (~120), MESO (~87), UVM (~80), ACC (~79), KICH (~66), 
-#       UCS (~57), DLBC (~48), CHOL (~36).
+# Methylation: maximum number of CpG sites to retain PER PROJECT at download
+# time, ranked by variance (highest first) within that project. Because
+# top-variance CpGs are cancer-type-specific, too small a cap here (e.g. 1000)
+# leaves almost no CpGs common to every project once merged. 20000 is a
+# middle ground: keeps raw per-project files well short of the full ~450k
+# probes while leaving enough overlap for a meaningful pan-cancer merge.
+max_cpgs: 20000
 
-# Methylation: maximum number of CpG sites to retain per project.
-# Sites are ranked by variance (highest first) to keep the most informative probes.
-# Set to null to keep all sites (very large output).
-max_cpgs: 5000
+# Methylation: after merging all projects into one matrix, keep only the top
+# N common CpG sites by variance across the pooled samples. This is the
+# actual "most informative probes" selection for the pan-cancer matrix.
+# Set to null to keep every CpG common to all projects.
+merged_max_cpgs: 4000

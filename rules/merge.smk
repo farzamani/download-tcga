@@ -17,9 +17,11 @@ rule merge_mrna:
         mem_mb  = 32000,
         runtime = 60
     shell:
+        # --max-ppsize raises R's PROTECT stack (default 50000); rbindlist()
+        # on ~60k-column wide tables (full transcriptome) overflows it otherwise.
         """
         mkdir -p $(dirname {output.tsv})
-        Rscript scripts/merge_modality.R wide {output.tsv} {input.tsvs} \
+        Rscript --max-ppsize=500000 scripts/merge_modality.R wide {output.tsv} {input.tsvs} \
             > {log} 2>&1
         """
 
@@ -40,7 +42,7 @@ rule merge_mirna:
     shell:
         """
         mkdir -p $(dirname {output.tsv})
-        Rscript scripts/merge_modality.R wide {output.tsv} {input.tsvs} \
+        Rscript --max-ppsize=500000 scripts/merge_modality.R wide {output.tsv} {input.tsvs} \
             > {log} 2>&1
         """
 
@@ -54,14 +56,42 @@ rule merge_methylation:
         "logs/merge/methylation.log"
     conda:
         os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
+    params:
+        top_var_flag = (f"--top-var={config['merged_max_cpgs']}"
+                         if config.get("merged_max_cpgs") else "")
     threads: 2
     resources:
-        mem_mb  = 64000,   # 33 projects × up to 50k CpGs is large
+        mem_mb  = 64000,   # 33 projects × up to 20k CpGs is large
         runtime = 120
+    shell:
+        # --top-var keeps only the N common CpGs with highest pooled variance,
+        # since the per-project cap (max_cpgs) alone leaves each project with
+        # a different cancer-type-specific top set.
+        """
+        mkdir -p $(dirname {output.tsv})
+        Rscript --max-ppsize=500000 scripts/merge_modality.R wide {output.tsv} \
+            {params.top_var_flag} {input.tsvs} \
+            > {log} 2>&1
+        """
+
+
+rule merge_cnv_gene:
+    input:
+        tsvs = expand(f"{RAW}/{{project}}/cnv_gene.tsv", project=PROJECTS)
+    output:
+        tsv = f"{MERGED}/cnv_gene.tsv"
+    log:
+        "logs/merge/cnv_gene.log"
+    conda:
+        os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
+    threads: 2
+    resources:
+        mem_mb  = 32000,
+        runtime = 60
     shell:
         """
         mkdir -p $(dirname {output.tsv})
-        Rscript scripts/merge_modality.R wide {output.tsv} {input.tsvs} \
+        Rscript --max-ppsize=500000 scripts/merge_modality.R wide {output.tsv} {input.tsvs} \
             > {log} 2>&1
         """
 

@@ -52,6 +52,10 @@ def all_targets():
         targets += expand(f"{RAW}/{{project}}/cnv.tsv", project=PROJECTS)
         targets.append(f"{MERGED}/cnv.tsv")
 
+    if config["modalities"].get("run_cnv_gene"):
+        targets += expand(f"{RAW}/{{project}}/cnv_gene.tsv", project=PROJECTS)
+        targets.append(f"{MERGED}/cnv_gene.tsv")
+
     if config["modalities"]["run_annotation"]:
         targets += expand(f"{ANNOT}/{{project}}/annotation.tsv", project=PROJECTS)
         targets.append(f"{MERGED}/annotation.tsv")

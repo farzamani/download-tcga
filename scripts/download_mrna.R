@@ -43,10 +43,29 @@ tryCatch({
 
   query <- do.call(GDCquery, query_args)
   GDCdownload(query, method = "api", files.per.chunk = 100, directory = gdc_cache)
-  se <- GDCprepare(query, directory = gdc_cache)
 
-  counts_mat <- assay(se, "unstranded")   # genes × samples
-  barcodes   <- colnames(counts_mat)
+  # summarizedExperiment=FALSE skips TCGAbiolinks' colData/clinical merge
+  # (makeSEfromTranscriptomeProfilingSTAR -> colDataPrepare), which errors
+  # on projects like TCGA-LAML whose indexed clinical data is missing
+  # columns (e.g. disease_response) that TCGAbiolinks assumes exist. We
+  # only need raw counts, so build the matrix ourselves from the wide
+  # data.table GDCprepare returns instead.
+  df <- GDCprepare(query, directory = gdc_cache, summarizedExperiment = FALSE)
+  if (!"gene_id" %in% colnames(df)) {
+    stop("GDCprepare(summarizedExperiment=FALSE) returned an unexpected shape ",
+         "(no gene_id column) - TCGAbiolinks internals may have changed")
+  }
+  df <- df[grepl("^ENSG", df$gene_id), ]
+  if (nrow(df) == 0) stop("no ENSG gene rows found after filtering GDCprepare output")
+
+  count_cols <- grep("^unstranded_", colnames(df), value = TRUE)
+  if (length(count_cols) == 0) {
+    stop("no unstranded_* count columns found - TCGAbiolinks internals may have changed")
+  }
+  counts_mat <- as.matrix(df[, ..count_cols])
+  rownames(counts_mat) <- df$gene_id
+  colnames(counts_mat) <- sub("^unstranded_", "", count_cols)
+  barcodes <- colnames(counts_mat)
 
   # Strip Ensembl version suffix so IDs match gene_annotation.tsv
   # ENSG00000000003.15 → ENSG00000000003
