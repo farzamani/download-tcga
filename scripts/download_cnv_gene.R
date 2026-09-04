@@ -34,6 +34,26 @@ write_empty <- function(path) {
   message("WARNING: wrote empty cnv_gene.tsv for ", project)
 }
 
+# GDC copy-number calling compares a tumor sample against its matched
+# normal, so a single file (and the query/column identity built from it)
+# can be associated with TWO sample barcodes, joined by ";" — e.g.
+# "TCGA-OR-A5L1-10A;TCGA-OR-A5L1-01A" (normal;tumor). Only the tumor side
+# has a meaningful copy-number value (it's called relative to the matched
+# normal baseline, which isn't itself a CNV sample), so every such entry is
+# resolved down to its tumor barcode using the TCGA sample-type code at
+# barcode positions 14-15 (01-09 = tumor-derived; see
+# TCGAbiolinks::getBarcodeDefinition() and build_annotation.R's
+# sample_type_code convention). Some cases also have genuinely separate
+# files for the same tumor sample (e.g. paired against different normals);
+# those collapse to the same resolved barcode and are deduplicated too.
+pick_tumor_barcode <- function(x) {
+  parts <- strsplit(x, ";", fixed = TRUE)[[1]]
+  if (length(parts) == 1) return(parts)
+  codes <- suppressWarnings(as.integer(substr(parts, 14, 15)))
+  tumor <- parts[!is.na(codes) & codes < 10]
+  if (length(tumor) >= 1) tumor[1] else parts[1]
+}
+
 tryCatch({
   # Genes to align to: the same protein-coding Ensembl gene set used for
   # mrna.tsv. GDC's gene-level copy number covers a broader gene model
@@ -60,20 +80,21 @@ tryCatch({
 
   query <- do.call(GDCquery, query_args)
 
-  # GDC can list more than one Gene Level Copy Number file for the same
-  # case (e.g. multiple samples/aliquots per case). TCGAbiolinks' internal
-  # parser (read_gene_level_copy_number) builds each column name from the
-  # case ID alone, so duplicate cases silently collide into duplicate
-  # "<case>_copy_number" columns instead of erroring — corrupting the
-  # matrix downstream. Deduplicate the query results (keep first file per
-  # case) before downloading, so this can't happen and we don't waste
-  # bandwidth on files we'd discard anyway.
+  # GDC can list more than one Gene Level Copy Number file that resolves to
+  # the same tumor sample (see pick_tumor_barcode() above — either literal
+  # duplicate files, or the same tumor paired against different normals).
+  # TCGAbiolinks' internal parser (read_gene_level_copy_number) builds each
+  # column name from the case ID alone, so such duplicates silently collide
+  # into duplicate columns instead of erroring — corrupting the matrix
+  # downstream. Resolve and deduplicate by tumor barcode before downloading,
+  # so this can't happen and we don't waste bandwidth on files we'd discard.
   res <- getResults(query)
-  if (any(duplicated(res$cases))) {
-    n_dup <- sum(duplicated(res$cases))
-    message("Found ", n_dup, " duplicate case(s) with multiple files for ",
-            project, " Gene Level Copy Number; keeping first file per case")
-    query$results[[1]] <- res[!duplicated(res$cases), ]
+  res$tumor_barcode <- vapply(res$cases, pick_tumor_barcode, character(1), USE.NAMES = FALSE)
+  if (any(duplicated(res$tumor_barcode))) {
+    n_dup <- sum(duplicated(res$tumor_barcode))
+    message("Found ", n_dup, " duplicate tumor sample(s) with multiple CNV files for ",
+            project, "; keeping first file per tumor sample")
+    query$results[[1]] <- res[!duplicated(res$tumor_barcode), ]
   }
 
   GDCdownload(query, method = "api", files.per.chunk = 100, directory = gdc_cache)
@@ -116,7 +137,17 @@ tryCatch({
   cn_mat <- as.matrix(df[keep, cn_cols, drop = FALSE])
   mode(cn_mat) <- "numeric"
   rownames(cn_mat) <- gene_ids[keep]
-  colnames(cn_mat) <- sub("_copy_number$", "", cn_cols)
+
+  # Resolve each column's (possibly "normal;tumor") identity down to its
+  # tumor barcode — see pick_tumor_barcode() above.
+  colnames(cn_mat) <- vapply(sub("_copy_number$", "", cn_cols),
+                              pick_tumor_barcode, character(1), USE.NAMES = FALSE)
+  if (any(duplicated(colnames(cn_mat)))) {
+    n_dup <- sum(duplicated(colnames(cn_mat)))
+    message("Found ", n_dup, " duplicate resolved tumor barcode(s) after ID mapping ",
+            "for ", project, "; keeping first occurrence")
+    cn_mat <- cn_mat[, !duplicated(colnames(cn_mat)), drop = FALSE]
+  }
 
   # A gene can appear more than once in GDC's file (rare, alt scaffolds);
   # keep the first occurrence to guarantee one column per gene downstream.
