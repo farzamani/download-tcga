@@ -5,7 +5,8 @@
 
 rule merge_mrna:
     input:
-        tsvs = expand(f"{RAW}/{{project}}/mrna.tsv", project=PROJECTS)
+        script = "scripts/merge_modality.R",
+        tsvs   = expand(f"{RAW}/{{project}}/mrna.tsv", project=PROJECTS)
     output:
         tsv = f"{MERGED}/mrna.tsv"
     log:
@@ -21,14 +22,15 @@ rule merge_mrna:
         # on ~60k-column wide tables (full transcriptome) overflows it otherwise.
         """
         mkdir -p $(dirname {output.tsv})
-        Rscript --max-ppsize=500000 scripts/merge_modality.R wide {output.tsv} {input.tsvs} \
+        Rscript --max-ppsize=500000 {input.script} wide {output.tsv} {input.tsvs} \
             > {log} 2>&1
         """
 
 
 rule merge_mirna:
     input:
-        tsvs = expand(f"{RAW}/{{project}}/mirna.tsv", project=PROJECTS)
+        script = "scripts/merge_modality.R",
+        tsvs   = expand(f"{RAW}/{{project}}/mirna.tsv", project=PROJECTS)
     output:
         tsv = f"{MERGED}/mirna.tsv"
     log:
@@ -42,14 +44,15 @@ rule merge_mirna:
     shell:
         """
         mkdir -p $(dirname {output.tsv})
-        Rscript --max-ppsize=500000 scripts/merge_modality.R wide {output.tsv} {input.tsvs} \
+        Rscript --max-ppsize=500000 {input.script} wide {output.tsv} {input.tsvs} \
             > {log} 2>&1
         """
 
 
 rule merge_methylation:
     input:
-        tsvs = expand(f"{RAW}/{{project}}/methylation.tsv", project=PROJECTS)
+        script = "scripts/merge_modality.R",
+        tsvs   = expand(f"{RAW}/{{project}}/methylation.tsv", project=PROJECTS)
     output:
         tsv = f"{MERGED}/methylation.tsv"
     log:
@@ -69,7 +72,7 @@ rule merge_methylation:
         # a different cancer-type-specific top set.
         """
         mkdir -p $(dirname {output.tsv})
-        Rscript --max-ppsize=500000 scripts/merge_modality.R wide {output.tsv} \
+        Rscript --max-ppsize=500000 {input.script} wide {output.tsv} \
             {params.top_var_flag} {input.tsvs} \
             > {log} 2>&1
         """
@@ -77,7 +80,8 @@ rule merge_methylation:
 
 rule merge_cnv_gene:
     input:
-        tsvs = expand(f"{RAW}/{{project}}/cnv_gene.tsv", project=PROJECTS)
+        script = "scripts/merge_modality.R",
+        tsvs   = expand(f"{RAW}/{{project}}/cnv_gene.tsv", project=PROJECTS)
     output:
         tsv = f"{MERGED}/cnv_gene.tsv"
     log:
@@ -91,14 +95,15 @@ rule merge_cnv_gene:
     shell:
         """
         mkdir -p $(dirname {output.tsv})
-        Rscript --max-ppsize=500000 scripts/merge_modality.R wide {output.tsv} {input.tsvs} \
+        Rscript --max-ppsize=500000 {input.script} wide {output.tsv} {input.tsvs} \
             > {log} 2>&1
         """
 
 
 rule merge_cnv:
     input:
-        tsvs = expand(f"{RAW}/{{project}}/cnv.tsv", project=PROJECTS)
+        script = "scripts/merge_modality.R",
+        tsvs   = expand(f"{RAW}/{{project}}/cnv.tsv", project=PROJECTS)
     output:
         tsv = f"{MERGED}/cnv.tsv"
     log:
@@ -112,14 +117,15 @@ rule merge_cnv:
     shell:
         """
         mkdir -p $(dirname {output.tsv})
-        Rscript scripts/merge_modality.R long {output.tsv} {input.tsvs} \
+        Rscript {input.script} long {output.tsv} {input.tsvs} \
             > {log} 2>&1
         """
 
 
 rule merge_annotation:
     input:
-        tsvs = expand(f"{ANNOT}/{{project}}/annotation.tsv", project=PROJECTS)
+        script = "scripts/merge_modality.R",
+        tsvs   = expand(f"{ANNOT}/{{project}}/annotation.tsv", project=PROJECTS)
     output:
         tsv = f"{MERGED}/annotation.tsv"
     log:
@@ -133,6 +139,6 @@ rule merge_annotation:
     shell:
         """
         mkdir -p $(dirname {output.tsv})
-        Rscript scripts/merge_modality.R long {output.tsv} {input.tsvs} \
+        Rscript {input.script} long {output.tsv} {input.tsvs} \
             > {log} 2>&1
         """

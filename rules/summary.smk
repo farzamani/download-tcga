@@ -13,7 +13,8 @@ def _summary_inputs(wildcards):
 
 rule summarize_project:
     input:
-        unpack(_summary_inputs)
+        unpack(_summary_inputs),
+        script = "scripts/summarize_modalities.R"
     output:
         tsv = f"{SUMMARY}/{{project}}.modality_summary.tsv"
     log:
@@ -30,7 +31,7 @@ rule summarize_project:
     shell:
         """
         mkdir -p $(dirname {output.tsv})
-        Rscript scripts/summarize_modalities.R \
+        Rscript {input.script} \
             {params.project} \
             {params.raw_dir} \
             {output.tsv} \

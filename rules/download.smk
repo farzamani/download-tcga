@@ -1,4 +1,6 @@
 rule download_mrna:
+    input:
+        script = "scripts/download_mrna.R"
     output:
         tsv = f"{RAW}/{{project}}/mrna.tsv"
     log:
@@ -15,7 +17,7 @@ rule download_mrna:
     shell:
         """
         mkdir -p $(dirname {output.tsv}) {params.gdc_cache}
-        Rscript scripts/download_mrna.R \
+        Rscript {input.script} \
             {wildcards.project} \
             {params.sample_type} \
             {output.tsv} \
@@ -25,6 +27,8 @@ rule download_mrna:
 
 
 rule download_mirna:
+    input:
+        script = "scripts/download_mirna.R"
     output:
         tsv = f"{RAW}/{{project}}/mirna.tsv"
     log:
@@ -41,7 +45,7 @@ rule download_mirna:
     shell:
         """
         mkdir -p $(dirname {output.tsv}) {params.gdc_cache}
-        Rscript scripts/download_mirna.R \
+        Rscript {input.script} \
             {wildcards.project} \
             {params.sample_type} \
             {output.tsv} \
@@ -51,6 +55,8 @@ rule download_mirna:
 
 
 rule download_methylation:
+    input:
+        script = "scripts/download_methylation.R"
     output:
         tsv = f"{RAW}/{{project}}/methylation.tsv"
     log:
@@ -68,7 +74,7 @@ rule download_methylation:
     shell:
         """
         mkdir -p $(dirname {output.tsv}) {params.gdc_cache}
-        Rscript scripts/download_methylation.R \
+        Rscript {input.script} \
             {wildcards.project} \
             {params.sample_type} \
             {output.tsv} \
@@ -79,6 +85,8 @@ rule download_methylation:
 
 
 rule download_cnv:
+    input:
+        script = "scripts/download_cnv.R"
     output:
         tsv = f"{RAW}/{{project}}/cnv.tsv"
     log:
@@ -95,7 +103,7 @@ rule download_cnv:
     shell:
         """
         mkdir -p $(dirname {output.tsv}) {params.gdc_cache}
-        Rscript scripts/download_cnv.R \
+        Rscript {input.script} \
             {wildcards.project} \
             {params.sample_type} \
             {output.tsv} \
@@ -109,6 +117,7 @@ rule download_cnv:
 # CNV and expression describe identical genes for the shared latent space.
 rule download_cnv_gene:
     input:
+        script          = "scripts/download_cnv_gene.R",
         gene_annotation = f"{ANNOT}/gene_annotation.tsv"
     output:
         tsv = f"{RAW}/{{project}}/cnv_gene.tsv"
@@ -126,7 +135,7 @@ rule download_cnv_gene:
     shell:
         """
         mkdir -p $(dirname {output.tsv}) {params.gdc_cache}
-        Rscript scripts/download_cnv_gene.R \
+        Rscript {input.script} \
             {wildcards.project} \
             {params.sample_type} \
             {output.tsv} \
