@@ -59,6 +59,23 @@ tryCatch({
   if (sample_type != "all") query_args$sample.type <- sample_type
 
   query <- do.call(GDCquery, query_args)
+
+  # GDC can list more than one Gene Level Copy Number file for the same
+  # case (e.g. multiple samples/aliquots per case). TCGAbiolinks' internal
+  # parser (read_gene_level_copy_number) builds each column name from the
+  # case ID alone, so duplicate cases silently collide into duplicate
+  # "<case>_copy_number" columns instead of erroring — corrupting the
+  # matrix downstream. Deduplicate the query results (keep first file per
+  # case) before downloading, so this can't happen and we don't waste
+  # bandwidth on files we'd discard anyway.
+  res <- getResults(query)
+  if (any(duplicated(res$cases))) {
+    n_dup <- sum(duplicated(res$cases))
+    message("Found ", n_dup, " duplicate case(s) with multiple files for ",
+            project, " Gene Level Copy Number; keeping first file per case")
+    query$results[[1]] <- res[!duplicated(res$cases), ]
+  }
+
   GDCdownload(query, method = "api", files.per.chunk = 100, directory = gdc_cache)
 
   # summarizedExperiment=FALSE skips TCGAbiolinks' colData/clinical merge
@@ -82,6 +99,11 @@ tryCatch({
   cn_cols <- cn_cols[!grepl("_(min|max)_copy_number$", cn_cols)]
   if (length(cn_cols) == 0) {
     stop("no <barcode>_copy_number columns found - TCGAbiolinks internals may have changed")
+  }
+  if (any(duplicated(cn_cols))) {
+    stop("duplicate sample columns in GDCprepare output (",
+         paste(unique(cn_cols[duplicated(cn_cols)]), collapse = ", "),
+         ") - likely duplicate cases in the query that weren't caught by the dedup above")
   }
 
   gene_ids <- sub("\\.[0-9]+$", "", df$gene_id)  # strip Ensembl version suffix
