@@ -8,7 +8,9 @@ dependencies:
   - bioconductor-tcgabiolinks>=2.30
   - bioconductor-summarizedexperiment>=1.32
   - bioconductor-genomicranges>=1.54
-  - bioconductor-biomart>=2.58
+  - bioconductor-ensdb.hsapiens.v86    # offline gene annotation (protein-coding, GRCh38) — no network needed
+  - bioconductor-ensembldb
+  - bioconductor-annotationfilter
   - bioconductor-mirbaseconverter>=1.26
   - r-data.table>=1.14
   - r-matrixstats>=1.2

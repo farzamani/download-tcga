@@ -5,7 +5,9 @@ suppressPackageStartupMessages({
 
 # ---------------------------------------------------------------------------
 # Args: project  sample_type  outfile  gdc_cache  gene_annotation_file
-# sample_type: TCGA code such as "TP", or "all" to download every sample type
+# sample_type: full tissue.definition text such as "Primary Tumor"
+#              (NOT the shortLetterCode "TP" — see TCGAbiolinks::getBarcodeDefinition()),
+#              or "all" to download every sample type
 # gdc_cache:   directory where GDCdownload stores raw files (e.g. results/cache)
 # gene_annotation_file: annotation/gene_annotation.tsv (from annotate_genes.R)
 #   — the mapping step: restricts/aligns CNV genes to the same Ensembl gene
@@ -44,7 +46,7 @@ tryCatch({
   }
   if (nrow(gene_ann) == 0) {
     stop("gene_annotation_file is empty (0 genes): ", gene_ann_file,
-         " - annotate_genes.R likely failed (e.g. biomaRt/Ensembl unreachable); ",
+         " - annotate_genes.R likely failed; ",
          "check logs/annotate_genes.log and rerun that rule before retrying this one")
   }
   target_genes <- unique(gene_ann$gene_id)

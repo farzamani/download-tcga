@@ -7,9 +7,12 @@ dirs:
 
 # TCGA sample type filter.
 # "all" downloads every available sample type for each project.
-# To restrict to a specific type use a code: "TP" (Primary Tumor),
-# "NT" (Solid Tissue Normal), "TB" (Blood Derived Normal), etc.
-sample_type: "TP"
+# To restrict to a specific type, TCGAbiolinks validates against the FULL
+# tissue.definition text (not the shortLetterCode) — e.g. "Primary Tumor"
+# (not "TP"), "Solid Tissue Normal" (not "NT"),
+# "Primary Blood Derived Cancer - Peripheral Blood" (not "TB"). Matching is
+# case-insensitive. See TCGAbiolinks::getBarcodeDefinition() for the full list.
+sample_type: "all"
 
 modalities:
   run_mrna: true

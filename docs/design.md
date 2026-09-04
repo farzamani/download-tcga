@@ -108,15 +108,16 @@ recommended.
 | Project | Array | Notes |
 |---|---|---|
 | TCGA-OV | 27k + 450k | Two batches; only 450k returned by default |
-| TCGA-LAML | 450k | Blood tumour; "TP" sample type may return 0 samples — use "TB" |
+| TCGA-LAML | 450k | Blood tumour; "Primary Tumor" sample type may return 0 samples — use "Primary Blood Derived Cancer - Peripheral Blood" |
 | TCGA-DLBC | 450k | Small cohort (~48 samples) |
 | TCGA-MESO | 450k | Very small cohort (~87 samples); methylation may be incomplete |
 
 ### CNV availability
 
-- TCGA-LAML (acute myeloid leukaemia) uses `"TB"` (Blood Derived Normal) and
-  `"TBM"` (Bone Marrow) sample types rather than `"TP"`. Setting `sample_type: "TP"`
-  will return 0 CNV segments for LAML. Override per-project if needed.
+- TCGA-LAML (acute myeloid leukaemia) uses `"Primary Blood Derived Cancer - Peripheral Blood"`
+  and `"Primary Blood Derived Cancer - Bone Marrow"` sample types rather than
+  `"Primary Tumor"`. Setting `sample_type: "Primary Tumor"` will return 0 CNV
+  segments for LAML. Override per-project if needed.
 - Some projects were processed with different SNP array platforms (Affymetrix SNP 6.0
   vs. Illumina Infinium), which affects segment resolution. The workflow does not
   normalise across platforms.
@@ -134,10 +135,17 @@ script uses `NA` for missing values and does not impute.
 
 ### Sample type codes
 
-The default `sample_type: "TP"` (Primary Solid Tumor) excludes:
-- Blood-derived tumours (LAML, DLBC) — use `"TB"` or `"TBM"`
-- Metastatic samples — use `"TM"`
-- Recurrent tumours — use `"TR"`
+`sample_type` in `config.yaml` is matched by TCGAbiolinks against the FULL
+`tissue.definition` text (case-insensitive), NOT the shortLetterCode you see
+in barcodes (e.g. "TP") — passing a shortLetterCode causes every download to
+fail with `"<code> was not found"`. Run `TCGAbiolinks::getBarcodeDefinition()`
+for the full list. The default is `sample_type: "all"` (no filtering); to
+restrict to one type, e.g.:
+- Primary solid tumours — `"Primary Tumor"`
+- Blood-derived tumours (LAML, DLBC) — `"Primary Blood Derived Cancer - Peripheral Blood"`
+  or `"Primary Blood Derived Cancer - Bone Marrow"`
+- Metastatic samples — `"Metastatic"`
+- Recurrent tumours — `"Recurrent Tumor"`
 
 To process multiple sample types, run separate workflow instances with different
 `config.yaml` files or extend the Snakefile to iterate over a list of types.
