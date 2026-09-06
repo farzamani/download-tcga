@@ -34,7 +34,7 @@ modalities <- list(
   mrna        = file.path(raw_dir, "mrna.tsv"),
   mirna       = file.path(raw_dir, "mirna.tsv"),
   methylation = file.path(raw_dir, "methylation.tsv"),
-  cnv         = file.path(raw_dir, "cnv.tsv")
+  cnv_gene    = file.path(raw_dir, "cnv_gene.tsv")
 )
 
 sample_sets <- setNames(lapply(names(modalities), function(mod) {

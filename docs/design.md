@@ -42,13 +42,18 @@ choose the appropriate join key.
 
 ### CNV format
 
-CNV output is **long-format** (one row per genomic segment), not wide. This is
-intentional: segments vary in number across samples, making a wide matrix
-impractical. Typical downstream steps (GISTIC2, CBS-based tools) expect
-segment-level input.
+CNV output (`cnv_gene.tsv`) is **wide-format** (samples × genes), using GDC's
+own gene-level copy number product rather than raw segments — this makes it
+directly comparable to `mrna.tsv`: both use the same protein-coding Ensembl
+gene ID set (`gene_annotation.tsv`), aligned column-for-column, feature
+columns intersected across projects like the other wide modalities.
 
-Columns: `barcode`, `patient_id`, `sample_id`, `project`, `sample_type`,
-`chromosome`, `start`, `end`, `num_probes`, `segment_mean`.
+GDC's copy number pipeline calls each tumor's copy number relative to its
+matched normal sample, so a single file (and query result) can be associated
+with two barcodes ("normal;tumor"); `download_cnv_gene.R` resolves this down
+to the tumor barcode via its TCGA sample-type code, and deduplicates cases
+that resolve to the same tumor sample (e.g. paired against different
+normals).
 
 ### Methylation format
 
@@ -117,10 +122,11 @@ recommended.
 - TCGA-LAML (acute myeloid leukaemia) uses `"Primary Blood Derived Cancer - Peripheral Blood"`
   and `"Primary Blood Derived Cancer - Bone Marrow"` sample types rather than
   `"Primary Tumor"`. Setting `sample_type: "Primary Tumor"` will return 0 CNV
-  segments for LAML. Override per-project if needed.
+  data for LAML. Override per-project if needed (default `sample_type: "all"`
+  is unaffected).
 - Some projects were processed with different SNP array platforms (Affymetrix SNP 6.0
-  vs. Illumina Infinium), which affects segment resolution. The workflow does not
-  normalise across platforms.
+  vs. Illumina Infinium); GDC's gene-level pipeline handles this internally,
+  but resolution/noise characteristics still differ by platform.
 
 ### miRNA availability
 

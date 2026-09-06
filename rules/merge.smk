@@ -1,7 +1,8 @@
 # Merge rules — combine per-project TSVs into one pan-TCGA file per modality.
-# Wide-format modalities (rna, mirna, methylation): features are intersected so
-# the merged matrix contains only probes/genes present in every project.
-# Long-format modalities (cnv, annotation): simple row-bind, no feature alignment needed.
+# Wide-format modalities (rna, mirna, methylation, cnv_gene): features are
+# intersected so the merged matrix contains only probes/genes present in
+# every project.
+# Long-format modalities (annotation): simple row-bind, no feature alignment needed.
 
 rule merge_mrna:
     input:
@@ -96,28 +97,6 @@ rule merge_cnv_gene:
         """
         mkdir -p $(dirname {output.tsv})
         Rscript --max-ppsize=500000 {input.script} wide {output.tsv} {input.tsvs} \
-            > {log} 2>&1
-        """
-
-
-rule merge_cnv:
-    input:
-        script = "scripts/merge_modality.R",
-        tsvs   = expand(f"{RAW}/{{project}}/cnv.tsv", project=PROJECTS)
-    output:
-        tsv = f"{MERGED}/cnv.tsv"
-    log:
-        "logs/merge/cnv.log"
-    conda:
-        os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
-    threads: 2
-    resources:
-        mem_mb  = 16000,
-        runtime = 30
-    shell:
-        """
-        mkdir -p $(dirname {output.tsv})
-        Rscript {input.script} long {output.tsv} {input.tsvs} \
             > {log} 2>&1
         """
 

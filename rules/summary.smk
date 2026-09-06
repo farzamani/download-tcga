@@ -6,8 +6,8 @@ def _summary_inputs(wildcards):
         inputs["mirna"] = f"{RAW}/{wildcards.project}/mirna.tsv"
     if config["modalities"]["run_methylation"]:
         inputs["methylation"] = f"{RAW}/{wildcards.project}/methylation.tsv"
-    if config["modalities"]["run_cnv"]:
-        inputs["cnv"] = f"{RAW}/{wildcards.project}/cnv.tsv"
+    if config["modalities"].get("run_cnv_gene"):
+        inputs["cnv_gene"] = f"{RAW}/{wildcards.project}/cnv_gene.tsv"
     return inputs
 
 

@@ -18,7 +18,6 @@ modalities:
   run_mrna: true
   run_mirna: true
   run_methylation: true
-  run_cnv: true
   run_cnv_gene: true    # GDC's gene-level CNV, mapped to the same genes as mrna.tsv
   run_annotation: true
 

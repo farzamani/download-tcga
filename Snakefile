@@ -48,10 +48,6 @@ def all_targets():
         targets += expand(f"{RAW}/{{project}}/methylation.tsv", project=PROJECTS)
         targets.append(f"{MERGED}/methylation.tsv")
 
-    if config["modalities"]["run_cnv"]:
-        targets += expand(f"{RAW}/{{project}}/cnv.tsv", project=PROJECTS)
-        targets.append(f"{MERGED}/cnv.tsv")
-
     if config["modalities"].get("run_cnv_gene"):
         targets += expand(f"{RAW}/{{project}}/cnv_gene.tsv", project=PROJECTS)
         targets.append(f"{MERGED}/cnv_gene.tsv")

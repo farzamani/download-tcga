@@ -6,11 +6,11 @@ suppressPackageStartupMessages({
 # ---------------------------------------------------------------------------
 # Args: format  outfile  [--top-var=N]  file1  file2  ...
 #
-# format: "wide"  — samples × features matrix (RNA, miRNA, methylation)
+# format: "wide"  — samples × features matrix (RNA, miRNA, methylation, CNV gene)
 #                   metadata columns are the first 5 (barcode … sample_type)
 #                   feature columns are intersected across projects so every
 #                   merged row has a value for every column
-#         "long"  — one observation per row (CNV, annotation)
+#         "long"  — one observation per row (annotation)
 #                   columns are union-merged with NA fill (fill = TRUE)
 #
 # --top-var=N: (wide only) after merging, keep only the N common feature

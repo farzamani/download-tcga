@@ -90,7 +90,7 @@ One row per sample, one column per **mature miRNA arm**.  Where multiple precurs
 
 ## methylation.tsv (per-project and merged)
 
-One row per sample, one column per CpG probe.  Only the top `max_cpgs` most-variable probes are retained (default 5,000).
+One row per sample, one column per CpG probe.  Only the top `max_cpgs` most-variable probes are retained per project (default 20,000), further trimmed to the top `merged_max_cpgs` (default 4,000) common probes by pooled variance after merging.
 
 | Column | Description |
 |--------|-------------|
@@ -99,18 +99,16 @@ One row per sample, one column per CpG probe.  Only the top `max_cpgs` most-vari
 
 ---
 
-## cnv.tsv (per-project and merged)
+## cnv_gene.tsv (per-project and merged)
 
-Long format — one row per copy-number segment per sample.
+Wide format — one row per sample, one column per protein-coding gene, using
+GDC's own gene-level copy number product (mapped to the same Ensembl gene
+IDs as `mrna.tsv`, via `gene_annotation.tsv`).
 
 | Column | Description |
 |--------|-------------|
-| `barcode` | Full TCGA aliquot barcode (join key) |
-| `chromosome` | Chromosome of the segment |
-| `start` | Genomic start position (1-based) |
-| `end` | Genomic end position (inclusive) |
-| `num_probes` | Number of SNP array probes in the segment |
-| `segment_mean` | Log2 copy-number ratio (tumor / normal). 0 ≈ diploid; positive = amplification; negative = deletion. |
+| `barcode` | Tumor sample's TCGA barcode (join key). GDC calls copy number relative to a matched normal, so this is resolved down from the underlying "normal;tumor" pair to the tumor barcode alone. |
+| `ENSGXXXXXXXXXXX` | GDC's per-gene copy number value (no Ensembl version suffix, matching `mrna.tsv`'s gene IDs). |
 
 ---
 
@@ -118,7 +116,7 @@ Long format — one row per copy-number segment per sample.
 
 Path: `results/annotation/gene_annotation.tsv`
 
-One row per protein-coding Ensembl gene (GRCh38, queried from Ensembl at run time via biomaRt).
+One row per protein-coding Ensembl gene (GRCh38, from the offline `EnsDb.Hsapiens.v86` Bioconductor package — no network access needed at run time).
 
 | Column | Description |
 |--------|-------------|

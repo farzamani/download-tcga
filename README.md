@@ -29,12 +29,13 @@ All settings live in `config/config.yaml`.
 |-----|---------|-------------|
 | `projects` | `null` (all 33) | List of TCGA project IDs to download, or `null` to run all projects in `projects_file` |
 | `projects_file` | `config/projects.tsv` | Full list of 33 TCGA projects |
-| `sample_type` | `all` | `all` downloads every sample type; restrict with a code e.g. `TP` (Primary Tumor), `NT` (Solid Tissue Normal) |
-| `max_cpgs` | `5000` | Top-N most-variable CpG probes to retain per project. Set to `null` to keep all (very large) |
+| `sample_type` | `all` | `all` downloads every sample type; to restrict, use the FULL `tissue.definition` text (not the barcode shortLetterCode), e.g. `"Primary Tumor"` — see `TCGAbiolinks::getBarcodeDefinition()` |
+| `max_cpgs` | `20000` | Top-N most-variable CpG probes to retain per project. Set to `null` to keep all (very large) |
+| `merged_max_cpgs` | `4000` | After merging, keep only the top-N common CpGs by pooled variance. Set to `null` to keep all common CpGs |
 | `modalities.run_mrna` | `true` | Toggle each modality independently |
 | `modalities.run_mirna` | `true` | |
 | `modalities.run_methylation` | `true` | |
-| `modalities.run_cnv` | `true` | |
+| `modalities.run_cnv_gene` | `true` | GDC's gene-level copy number, mapped to the same Ensembl gene set as `mrna.tsv` |
 | `modalities.run_annotation` | `true` | |
 
 ## Outputs
@@ -48,7 +49,7 @@ The GDC download cache (`results/cache/`) is removed automatically on successful
 | `results/raw/{project}/mrna.tsv` | Samples × protein-coding genes, STAR unstranded counts (ENSG IDs, no version suffix) |
 | `results/raw/{project}/mirna.tsv` | Samples × mature miRNA arms (hsa-miR-9-5p / hsa-miR-9-3p), raw counts |
 | `results/raw/{project}/methylation.tsv` | Samples × top-N CpG probes, Illumina 450k/27k beta values |
-| `results/raw/{project}/cnv.tsv` | Copy-number segments, long format |
+| `results/raw/{project}/cnv_gene.tsv` | Samples × protein-coding genes, GDC gene-level copy number (mapped to the same ENSG IDs as `mrna.tsv`) |
 | `results/annotation/{project}/annotation.tsv` | One row per sample: clinical, Pan-Cancer Atlas subtype, tumor purity (4 methods + consensus) |
 | `results/summary/{project}.modality_summary.tsv` | Per-modality sample counts and patient-level intersections (2–4 way) |
 
@@ -59,7 +60,7 @@ The GDC download cache (`results/cache/`) is removed automatically on successful
 | `results/merged/mrna.tsv` | All projects stacked; feature columns are the intersection across projects |
 | `results/merged/mirna.tsv` | All projects stacked |
 | `results/merged/methylation.tsv` | All projects stacked; feature columns are the intersection across projects |
-| `results/merged/cnv.tsv` | All projects stacked (long format) |
+| `results/merged/cnv_gene.tsv` | All projects stacked; feature columns are the intersection across projects |
 | `results/merged/annotation.tsv` | All projects stacked |
 
 ### Annotation dictionaries

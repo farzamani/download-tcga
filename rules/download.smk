@@ -84,34 +84,6 @@ rule download_methylation:
         """
 
 
-rule download_cnv:
-    input:
-        script = "scripts/download_cnv.R"
-    output:
-        tsv = f"{RAW}/{{project}}/cnv.tsv"
-    log:
-        "logs/download_cnv/{project}.log"
-    conda:
-        os.path.join(workflow.basedir, "envs/r-tcgabiolinks.yaml")
-    threads: 2
-    resources:
-        mem_mb  = 16000,
-        runtime = 60
-    params:
-        sample_type = config["sample_type"],
-        gdc_cache   = config["dirs"]["gdc_cache"]
-    shell:
-        """
-        mkdir -p $(dirname {output.tsv}) {params.gdc_cache}
-        Rscript {input.script} \
-            {wildcards.project} \
-            {params.sample_type} \
-            {output.tsv} \
-            {params.gdc_cache} \
-            > {log} 2>&1
-        """
-
-
 # GDC's own gene-summarized copy number product, mapped/aligned to the same
 # protein-coding Ensembl gene set as mrna.tsv (via gene_annotation.tsv), so
 # CNV and expression describe identical genes for the shared latent space.
