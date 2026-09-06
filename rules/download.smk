@@ -2,7 +2,7 @@ rule download_mrna:
     input:
         script = "scripts/download_mrna.R"
     output:
-        tsv = f"{RAW}/{{project}}/mrna.tsv"
+        tsv = temp(f"{RAW}/{{project}}/mrna.tsv")
     log:
         "logs/download_mrna/{project}.log"
     conda:
@@ -30,7 +30,7 @@ rule download_mirna:
     input:
         script = "scripts/download_mirna.R"
     output:
-        tsv = f"{RAW}/{{project}}/mirna.tsv"
+        tsv = temp(f"{RAW}/{{project}}/mirna.tsv")
     log:
         "logs/download_mirna/{project}.log"
     conda:
@@ -58,7 +58,7 @@ rule download_methylation:
     input:
         script = "scripts/download_methylation.R"
     output:
-        tsv = f"{RAW}/{{project}}/methylation.tsv"
+        tsv = temp(f"{RAW}/{{project}}/methylation.tsv")
     log:
         "logs/download_methylation/{project}.log"
     conda:
@@ -92,7 +92,7 @@ rule download_cnv_gene:
         script          = "scripts/download_cnv_gene.R",
         gene_annotation = f"{ANNOT}/gene_annotation.tsv"
     output:
-        tsv = f"{RAW}/{{project}}/cnv_gene.tsv"
+        tsv = temp(f"{RAW}/{{project}}/cnv_gene.tsv")
     log:
         "logs/download_cnv_gene/{project}.log"
     conda:
